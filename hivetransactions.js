@@ -456,24 +456,27 @@ class Transaction {
     }
 
     // List of handled transactions (including virtual operations)
-    static transactionsList = [
-        'author_reward',
-        'curation_reward',
-        'comment_benefactor_reward',
-        'producer_reward',
-        'claim_reward_balance',
-        'transfer',
-        'fill_convert_request',
-        'fill_vesting_withdraw',
-        'transfer_to_vesting',
-        'fill_order',
-        'account_create',
-        'account_create_with_delegation',
-        'claim_account',
-        'proposal_pay',
-        'create_proposal',
-        'interest'
-    ]
+    static transactionsList() {
+        return [
+            'author_reward',
+            'curation_reward',
+            'comment_benefactor_reward',
+            'producer_reward',
+            'claim_reward_balance',
+            'transfer',
+            'fill_convert_request',
+            'fill_vesting_withdraw',
+            'transfer_to_vesting',
+            'fill_order',
+            'account_create',
+            'account_create_with_delegation',
+            'claim_account',
+            'proposal_pay',
+            'create_proposal',
+            'interest'
+        ]
+    }
+
 }
 
 // Create transaction from DATA OBTAINED FROM HIVE BLOCKCHAIN
