@@ -27,6 +27,7 @@ let logistics = {
     siteSetup: async function() {
         // Set state
         ////storage.removeFromStorage('heystack_status');
+        console.log(localStorage);
         await status.setup();
 
         // Get nodes
