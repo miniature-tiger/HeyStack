@@ -1,0 +1,413 @@
+html {
+    background-color: rgb(54, 69, 79);
+    font-size: 0;
+    color: rgb(252, 252, 252);
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    margin: 0;
+}
+
+svg {
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.header {
+    position: relative;
+    display: inline-flex;
+    justify-content: start;
+    align-items: center;
+    margin: 10px 0px 0px 0px;
+    width: 100%;
+    height: 50px;
+    z-index: 10;
+}
+
+#title {
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    width: 15%;
+    height: 50px;
+    font-size: 2vw;
+    margin: 0% 0% 0% 1%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#headerLinks {
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    width: 68%;
+    height: 50px;
+    font-size: 1vw;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.linkBox {
+    display: inline-block;
+    padding: 1% 0% 1% 0%;
+    width: 12%;
+    height: 24px;
+    font-size: 1vw;
+    font-weight: 600;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.section {
+    display: none;
+}
+
+.banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    background: rgba(78, 136, 177, 0.7);
+    color: white;
+
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+
+    justify-content: center;
+    padding: 1% 5% 1% 5%;
+    line-height: 1.5;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: translateY(100%);
+    overflow: auto;
+}
+
+.colourHeader {
+    background-color: rgb(227, 19, 55);
+    color: rgb(252, 252, 252);
+}
+
+.colourNormal {
+    background-color: rgb(195, 195, 195);
+    color: rgb(33, 37, 41);
+}
+
+.colourHighlight {
+    background-color: rgb(240, 240, 248);
+    color: rgb(195, 0, 33);
+}
+
+.colourGo {
+    background-color: rgb(180, 206, 144);
+    color: rgb(67, 87, 38);
+}
+
+.colourMenuGo {
+    background-color: rgb(136, 177, 78);
+    color: rgb(230, 250, 230);
+
+}
+
+.colourNoGo {
+    background-color: rgb(208, 138, 158);
+    color: rgb(89, 39, 69);
+}
+
+.colourNeutral {
+    background-color: rgb(149, 184, 209);
+    color: rgb(39, 68, 89);
+}
+
+.colourNeutralShadow {
+    background-color: rgb(129, 164, 189);
+    color: rgb(39, 68, 89);
+}
+
+.colourMenuNeutral {
+    background-color: rgb(78, 136, 177);
+    color: rgb(230, 230, 250);
+}
+
+.colourInputNeutral {
+    background-color: lightgrey;
+    color: rgb(39, 68, 89);
+    font-style: italic;
+    outline: none;
+    caret-color: transparent;
+}
+
+.colourInputGo {
+    background-color: rgb(230, 230, 240);
+    color: rgb(39, 68, 89);
+    font-style: italic;
+    outline: none;
+    caret-color: transparent;
+}
+
+.colourUnconnected {
+    background-color: rgb(116, 124, 146);
+    color: rgb(230, 230, 250);
+}
+
+.fastTransition {
+    transition: background-color 0.1s 0s linear, transform 0.1s 0s linear;
+}
+
+.slowTransition {
+    transition: background-color 0.1s 0.55s linear, transform 0.5s 0s ease-in-out;
+}
+
+.scrollTransition {
+    transition: transform 0.6s 0s ease-in;
+}
+
+.button {
+    border-radius: 5px;
+    vertical-align: middle;
+    width: 10%;
+    height: 32px;
+    display: inline-block;
+    padding: 10px 10px 10px 10px;
+}
+
+.chart {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border-radius: 5px;
+    background-color: rgb(230, 230, 240);
+}
+
+.table {
+    position: relative;
+    border-radius: 5px;
+    background-color: transparent;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    overflow: auto;
+}
+
+.tableCurve {
+    background-color: lightgrey;
+    background-color: rgb(149, 184, 209);
+    color: rgb(39, 68, 89);
+}
+
+.tableHeader {
+    background-color: lightgrey;
+}
+
+.tableBody {
+    background-color: rgb(149, 184, 209);
+    background-color: rgb(230, 230, 240);
+}
+
+.row {
+    display: block;
+    background-color: rgb(230, 230, 240);
+    color: rgb(39, 68, 89);
+    overflow: hidden;
+}
+
+.headerRow {
+    background-color: grey;
+    color: rgb(230, 230, 240);
+    background-color: rgb(78, 136, 177);
+    color: rgb(230, 230, 250);
+    overflow: hidden;
+}
+
+.tableDiv {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 32px;
+    padding: 10%;
+}
+
+.tableDivLeft {
+    display: flex;
+    text-align: left;
+    align-items: center;
+    justify-content: flex-start;
+
+}
+
+.tableDivRight {
+    display: flex;
+    text-align: right;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.tableHeaderDiv {
+    position: sticky;
+    top: 0;
+    background-color: rgb(78, 136, 177);
+    color: rgb(230, 230, 250);
+    padding: 1% 10% 1% 10%;
+    overflow: hidden;
+}
+
+.tableBodyDiv {
+    background-color: rgb(230, 230, 240);
+    color: rgb(39, 68, 89);
+    padding: 1% 10% 1% 10%;
+    border-bottom: 1px solid rgb(149, 184, 209);
+    overflow: hidden;
+}
+
+.tableBodyDivHighlight {
+    background-color: rgb(149, 184, 209);
+    color: rgb(39, 68, 89);
+    padding: 1% 10% 1% 10%;
+    border-bottom: 1px solid rgb(149, 184, 209);
+    overflow: hidden;
+}
+
+.selector {
+    display: block;
+    position: relative;
+    border-radius: 5px;
+}
+
+#dragAndDrop {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed red;
+    border-radius: 5px;
+    width: 98%;
+    height: 94%;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+}
+
+#dropText {
+    font-size: 1vw;
+    color: rgb(33, 37, 41);
+}
+
+#importReport {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    width: 100%;
+    height: 100%;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    color: rgb(33, 37, 41);
+}
+
+.dataIcon {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    border-radius: 5px;
+}
+
+.scrollButton {
+    display: inline-flex;
+    white-space: nowrap;
+    overflow: auto;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    border-radius: 5px;
+    vertical-align: top;
+}
+
+.scrollButtonOption {
+    display: inline-flex;
+    flex-shrink: 0;
+    min-width: 100%;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    border-radius: 5px;
+}
+
+.buttonLabel {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    border-radius: 5px;
+    color: rgb(252, 252, 252);
+}
+
+.panel {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    margin: 1% 0% 0% 1%;
+}
+
+.box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border-radius: 5px;
+}
+
+.justifyTop {
+    justify-content: flex-start;
+}
+
+.textBox {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    font-family: system-ui, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    color: rgb(33, 37, 41);
+}
+
+.transparent {
+    background-color: transparent;
+}
+
+.transparentAndBorder {
+    background-color: transparent;
+    border: 2px dashed rgb(149, 184, 209);
+}
+
+.transparentLeft {
+    background-color: transparent;
+    align-items: start;
+    padding-left: 5%;
+}
+
+.whiteBox {
+    background-color: rgb(230, 230, 240);
+}
+
+.hidden {
+    display: none;
+}

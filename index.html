@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <!-- Links to style sheets-->
+    <link rel="stylesheet" type="text/css" href="page.css">
+</head>
+
+<body>
+
+    <!-- Site header and page links -->
+    <div class="header">
+        <div id="title">HEYSTACK</div>
+        <div id="headerLinks">
+            <div class="linkBox" id="faqLink" data-section="faq">FAQ</div>
+            <div class="linkBox" id="walletsLink" data-section="wallets">WALLETS</div>
+            <div class="linkBox" id="chartsLink" data-section="journey">JOURNEY</div>
+            <div class="linkBox" id="importsLink" data-section="imports">IMPORTS</div>
+            <div class="linkBox" id="stacksLink" data-section="stacks">STACKS</div>
+            <div class="linkBox" id="settingsLink" data-section="settings">SETTINGS</div>
+        </div>
+    </div>
+
+    <!-- FAQ section -->
+    <div class="section" id="faq"></div>
+
+    <!-- WALLETS section -->
+    <div class="section" id="wallets"></div>
+
+    <!-- JOURNEY section -->
+    <div class="section" id="journey"></div>
+
+    <!-- IMPORT section -->
+    <div class="section" id="imports"></div>
+
+    <!-- STACKS section -->
+    <div class="section" id="stacks"></div>
+
+    <!-- SETTINGS section -->
+    <div class="section" id="settings"></div>
+
+    <!-- Communication banner-->
+    <div class="banner" id="communication"></div>
+
+
+    <!-- xlsx parsing from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/jszip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/xlsx.js"></script>
+
+
+    <!-- Helpers -->
+    <script src='helpers.js'></script>
+
+    <!-- Exchange methods -->
+    <script src='exchanges.js'></script>
+
+    <!-- Hive methods -->
+    <script src='hivetransactions.js'></script>
+    <script src='hiveAPI.js'></script>
+
+    <!-- Storage and database methods -->
+    <script src='database.js'></script>
+
+    <!-- Data input methods -->
+    <script src='trade.js'></script>
+    <script src='stack.js'></script>
+    <script src='moment.js'></script>
+
+    <!-- Section scripts -->
+    <script src='faq.js'></script>
+    <script src='wallets.js'></script>
+    <script src='blockchain.js'></script>
+    <script src='journey.js'></script>
+    <script src='imports.js'></script>
+    <script src='stacks.js'></script>
+    <script src='settings.js'></script>
+
+    <!-- Page scritps -->
+    <script src='button.js'></script>
+    <script src='chart.js'></script>
+    <script src='scale.js'></script>
+    <script src='table.js'></script>
+    <script src='page.js'></script>
+    <script src='communication.js'></script>
+
+    <!-- The main javascript file -->
+    <script src='main.js'></script>
+
+</body>
