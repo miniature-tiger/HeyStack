@@ -79,7 +79,7 @@ let grapheneAPI = {
 
             if (responseJson.hasOwnProperty('error')) {
                 if (responseJson.error.message.substr(17, 28) === 'total_processed_items < 2000') {
-                    console.log("error handling for 2000 empty issue")
+                    //console.log("error handling for 2000 empty issue")
                     return {result: []};
                 } else {
                     console.log("error handling")

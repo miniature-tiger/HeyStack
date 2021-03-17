@@ -218,7 +218,6 @@ let wallets = {
             }
         }
         this.updateWalletsTable();
-        console.log(this.wallets);
     },
 
     // Create new wallet and store the summary range from the blockchain in the database
@@ -843,7 +842,12 @@ class Wallet {
         } else {
             let count = 1;
             for (let range of ranges) {
-                count += (range.lastTransaction.number - range.firstTransaction.number);
+                if (range.hasOwnProperty('lastTransaction') && range.hasOwnProperty('firstTransaction')) {
+                    count += (range.lastTransaction.number - range.firstTransaction.number);
+                } else {
+                    console.log(range)
+                    return 0;
+                }
             }
             return count;
         }

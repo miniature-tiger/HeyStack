@@ -26,8 +26,6 @@ let logistics = {
 
     siteSetup: async function() {
         // Set state
-        ////storage.removeFromStorage('heystack_status');
-        console.log(localStorage);
         await status.setup();
 
         // Get nodes
@@ -59,12 +57,32 @@ let logistics = {
 
             // Open and set up database
             await this.databaseSetup();
+            //await this.showAllStorage();
 
             // Run opening tasks (fast only, no fetch, no aggregation)
             await this.runOpeningTasks();
 
             // Run starting tasks (slow tasks)
             await this.runTasks();
+        }
+    },
+
+    // Reserved for debugging of storage issues
+    showAllStorage: async function() {
+        // Show all local storage items
+        console.log(localStorage);
+
+        // Show each database
+        for (let name in databases) {
+            let database = databases[name];
+            console.log(database)
+            for (let storeName of database.dB.objectStoreNames) {
+                console.log(storeName)
+                const indices = await database.reportIndices(storeName);
+                console.log(indices)
+                const data = await database.getAllFromStore(storeName);
+                console.log(data)
+            }
         }
     },
 

@@ -74,10 +74,12 @@ class Blockchain {
     }
 
     // List of aggregated transactions
-    static transactionsToAggregate = [
-        'curation_reward',
-        'producer_reward'
-    ];
+    static transactionsToAggregate() {
+        return [
+            'curation_reward',
+            'producer_reward'
+        ]
+    }
 
     // Change buttons on selection of blockchain
     setup() {
@@ -782,7 +784,7 @@ class Blockchain {
             case 'hive':
                 for (let datum of segment) {
                     let type = datum[1].op[0];
-                    if (HiveTransaction.transactionsList.includes(type)) {
+                    if (HiveTransaction.transactionsList().includes(type)) {
                         transactions.push(new HiveTransaction(datum, address, addressNumber, true, 'blockchain'));
                     }
                 }
@@ -790,7 +792,7 @@ class Blockchain {
             case 'steem':
                 for (let datum of segment) {
                     let type = datum[1].op[0];
-                    if (SteemTransaction.transactionsList.includes(type)) {
+                    if (SteemTransaction.transactionsList().includes(type)) {
                         transactions.push(new SteemTransaction(datum, address, addressNumber, true, 'blockchain'));
                     }
                 }
@@ -806,7 +808,7 @@ class Blockchain {
         let aggregated = [];
         let toAggregate = [];
         for (const transaction of processedTransactions) {
-            if (Blockchain.transactionsToAggregate.includes(transaction.type)) {
+            if (Blockchain.transactionsToAggregate().includes(transaction.type)) {
                 toAggregate.push(transaction); // For aggregation
             } else {
                 aggregated.push(transaction); // No aggregation - straight to processed
@@ -814,7 +816,7 @@ class Blockchain {
         }
 
         // Aggregate
-        for (const type of Blockchain.transactionsToAggregate) {
+        for (const type of Blockchain.transactionsToAggregate()) {
             let individualTransactions = toAggregate.filter(x => x.type === type);
             if (individualTransactions.length > 0) {
                 aggregated = aggregated.concat(this.aggregateTransactionsByDate(individualTransactions));

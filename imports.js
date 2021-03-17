@@ -891,23 +891,25 @@ class HeystackSource extends Source {
         let allExchangeOperations = await databases.heyStack.getAllFromStore('trade_imports');
         // Create filename and export using helper
         let filename = 'heystackExport';
-        let exportHelper = new ExportHelper(allExchangeOperations, HeystackSource.dataHeaders, filename);
+        let exportHelper = new ExportHelper(allExchangeOperations, HeystackSource.dataHeaders(), filename);
         await exportHelper.exportData();
     }
 
-    static dataHeaders = [
-        'type',
-        'buy',
-        'coinIn',
-        'sell',
-        'coinOut',
-        'fee',
-        'coinFee',
-        'exchange',
-        'comment',
-        'date',
-        'priceStatus',
-        'fiatValue'
-    ]
+    static dataHeaders() {
+        return [
+            'type',
+            'buy',
+            'coinIn',
+            'sell',
+            'coinOut',
+            'fee',
+            'coinFee',
+            'exchange',
+            'comment',
+            'date',
+            'priceStatus',
+            'fiatValue'
+        ]
+    }
 
 }
