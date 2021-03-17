@@ -218,6 +218,7 @@ let wallets = {
             }
         }
         this.updateWalletsTable();
+        console.log(this.wallets);
     },
 
     // Create new wallet and store the summary range from the blockchain in the database
