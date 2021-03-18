@@ -4,9 +4,9 @@
 // Functions to fetch from Hive / Seetm blockchain API
 let grapheneAPI = {
 
-    urlHive: 'https://api.hive.blog',
+    //urlHive: 'https://api.hive.blog',
     //urlHive: 'https://api.openhive.network',
-    //urlHive: 'https://hive.roelandp.nl',
+    urlHive: 'https://hive.roelandp.nl',
     urlSteem: 'https://api.steemit.com',
 
     // Switch url based on blockchain
