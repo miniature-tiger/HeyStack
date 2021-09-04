@@ -5,9 +5,6 @@
 let grapheneAPI = {
 
     urlHive: 'https://api.hive.blog',
-    //urlHive: 'https://api.openhive.network',
-    //urlHive: 'https://hive.roelandp.nl',
-    //urlHive: 'https://api.deathwing.me',
     urlSteem: 'https://api.steemit.com',
 
     // Switch url based on blockchain
@@ -44,8 +41,6 @@ let grapheneAPI = {
     // Calculate low and high parameters to pre-filter transactions by type
     checkCalculateLowHighParams: function() {
         if (this.lowParam === false && this.highParam === false) {
-            //let paramNumbers = [3, 4, 10, 23, 40, 42, 45, 49, 50, 51, 54, 55, 56, 62, 63, 65];
-            //let paramNumbers = [3, 4, 10, 23, 40, 42, 45, 51, 52, 53, 56, 57, 58, 64, 65, 67];
             let paramNumbers = [3, 4, 10, 23, 40, 42, 45, 49, 51, 52, 53, 56, 57, 58, 64, 65, 67, 82, 84];
             this.lowParam = paramNumbers.filter(x => x <= 64).reduce((total, amount) => total + (2n ** BigInt(amount-1)), 0n).toString();
             this.highParam = paramNumbers.filter(x => x > 64).reduce((total, amount) => total + (2n ** BigInt(amount-64-1)), 0n).toString();
@@ -149,14 +144,10 @@ let grapheneAPI = {
             id: 1
         };
         const dataString = JSON.stringify(data);
-        console.log(dataString)
-
-        let temp = '{"jsonrpc":"2.0","method":"database_api.find_collateralized_conversion_requests","params":{"address":""mika""},"id":1}'
 
         const response = await fetch(this.switchUrl(blockchain), {
             method: 'POST',
-            //body: dataString
-            body: temp
+            body: dataString
         });
         return await response.json();
     },
