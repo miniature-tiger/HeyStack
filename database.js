@@ -4,7 +4,7 @@
 
 // List of indexedDB databases to be created
 let databases = {
-    heyStack: {dbName: 'HeyStack', latestVersion: 2},
+    heyStack: {dbName: 'HeyStack', latestVersion: 1},
     cryptoPrices: {dbName: 'CryptoPrices', latestVersion: 1},
     vestPrices: {dbName: 'VestPrices', latestVersion: 1},
 }
@@ -95,14 +95,6 @@ class Database {
                 event.currentTarget.result.deleteObjectStore(storeName);
             }
 
-            // Delete all stores
-            function deleteAllStores(event) {
-                console.log(request.result.objectStoreNames)
-                for (let storeName of request.result.objectStoreNames) {
-                    deleteStore(event, storeName)
-                }
-            }
-
             // Change an object store name
             function changeStoreName(event, oldName, newName) {
                 let objectStore = event.target.transaction.objectStore(oldName);
@@ -111,15 +103,14 @@ class Database {
 
             // Handle upgrade
             request.onupgradeneeded = function(event) {
-                console.log('onupgradeneeded');
+                console.log('onupgradeneeded')
                 let dbName = request.result.name;
 
                 if (dbName === 'HeyStack') {
                     // Store the old version of the database
                     thisDatabase.oldVersion = event.oldVersion;
-                    // Delete previous database stores - create new ones
-                    if (event.oldVersion < 2) {
-                        deleteAllStores(event);
+                    // No previous database - create all object stores
+                    if (event.oldVersion < 1) {
                         createStore(event, "hive_wallet", "id", false, indices.walletIndices);
                         createStore(event, "hive_transactionsRange", "id", true, indices.rangeIndices);
                         createStore(event, "steem_wallet", "id", false, indices.walletIndices);
@@ -363,6 +354,28 @@ class Database {
         });
     }
 
+    // Delete a single elements from a store - key is id
+    async deleteElement(storeName, key) {
+        return new Promise((resolve, reject) => {
+            // Start transaction, get object store
+            let transactionIDB = this.dB.transaction([storeName], "readwrite");
+            let objectStore = transactionIDB.objectStore(storeName);
+
+            let deleteRequest = objectStore.delete(key);
+
+            // On completion
+            transactionIDB.oncomplete = function(event) {
+                resolve(event);
+            };
+
+            // Error handling
+            transactionIDB.onerror = function(event) {
+                console.error(storeName + ": " + event.target.errorCode);
+                reject(event.target.errorCode);
+            };
+        });
+    }
+
     // Clear an object store
     clearObjectStore(storeName) {
         return new Promise((resolve, reject) => {
@@ -519,17 +532,7 @@ class Database {
             };
         });
     }
-
-    async reportIndices(storeName) {
-        // Start transaction, get object store
-        let transactionIDB = this.dB.transaction([storeName], "readonly");
-        let objectStore = transactionIDB.objectStore(storeName);
-        console.log(objectStore)
-        return objectStore.indexNames;
-    }
 }
-
-
 
 // Local storage functions
 let storage = {
