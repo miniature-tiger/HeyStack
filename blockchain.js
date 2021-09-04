@@ -266,8 +266,6 @@ class Blockchain {
     // Loop to fetch and store account history transactions and associated ranges
     // - specific to Hive blockchain
     async getAccountHistoryFullHive(wallet, delayBetweenFetches, latestIdToFetch) {
-        console.log(wallet)
-        console.log(latestIdToFetch)
         let maxTransactions = 1000 + wallet.blockchain.parameters.transactionCountOffset; // Maximum number of transactions is 1000 - need -1 adjustment for Steem
         let latestIdToFetchReached = false; // Stops loop when prior transactions loaded through other blockchain are reached
         let currentStorage = {name: wallet.blockchain.name, earliestRangeTransaction: false}; // Transactions stored in current storage
@@ -284,7 +282,6 @@ class Blockchain {
                     loadState = 'empty'; // Load state initially set to empty if fetch of latest transaction returns empty
                 }
                 let rangeEndsHit = {first: false, last: true}; // Allows adjustment of transaction range and removal of overlapping transactions
-                console.log(range.lastTransaction)
                 let lastTransactionToObtain = range.lastTransaction; // Marker for end of segment
                 // Loop until all data obtained, error arises, or prior data reached
                 let rangeComplete = false;
@@ -300,10 +297,7 @@ class Blockchain {
                     let transactionsToObtain = Math.min(Math.max(Math.min(maxTransactions, transactionsRemainingInRange), minTransactions), lastTransactionToObtain.number + 1 + wallet.blockchain.parameters.transactionCountOffset);
                     let firstRequestedNumber = lastTransactionToObtain.number - transactionsToObtain + 1 + wallet.blockchain.parameters.transactionCountOffset;
                     // Fetch history segment
-                    console.log('---------------------------------')
-                    console.log(firstRequestedNumber, '-', lastTransactionToObtain.number, transactionsToObtain);
                     let historySegment = await grapheneAPI.fetchAccountHistorySegment(this.name, wallet.address, lastTransactionToObtain.number, transactionsToObtain);
-                    console.log(historySegment)
                     // Error handling for fetch
                     if (historySegment.hasOwnProperty('error')) {
                         errorInFetch = true;
@@ -312,14 +306,9 @@ class Blockchain {
                         // Extract last and first transactions
                         let lastTransactionInSegment = true;
                         let firstTransactionInSegment;
-                        console.log(loadState)
-                        console.log(historySegment.result)
                         if (loadState === 'normal') {
                             // Extract last and first transactions obtained - check validity of last against expected last transaction
                             lastTransactionInSegment = this.extractLastTransaction(historySegment.result, wallet.address, wallet.summaryRange.addressNumber, lastTransactionToObtain);
-                            console.log(lastTransactionInSegment, lastTransactionToObtain)
-                            console.log('check:', lastTransactionInSegment.id, '-', lastTransactionToObtain.id);
-                            console.log('check:', lastTransactionInSegment.number, '-', lastTransactionToObtain.number);
                             validityOfLastTransactionInSegment = this.checkValidLastTransaction(lastTransactionInSegment, lastTransactionToObtain);
                             firstTransactionInSegment = this.extractFirstTransaction(historySegment.result, wallet.address, wallet.summaryRange.addressNumber, 2, firstRequestedNumber);
                         } else if (loadState === 'empty') {
@@ -327,22 +316,15 @@ class Blockchain {
                             lastTransactionInSegment = lastTransactionToObtain;
                             firstTransactionInSegment = this.extractFirstTransaction(historySegment.result, wallet.address, wallet.summaryRange.addressNumber, 1, firstRequestedNumber);
                         }
-                        console.log(firstTransactionInSegment.number, '-', lastTransactionInSegment.number);
-                        console.log(firstTransactionInSegment.id, '-', lastTransactionInSegment.id);
                         // Break if last transaction check shows error
                         if (validityOfLastTransactionInSegment === false) {
                             communication.message("Issue with inconsistent account history numbers. Please try again later.");
-                            console.log('check false');
                             let checkTrans = await grapheneAPI.fetchAccountHistory(this.name, wallet.address, lastTransactionToObtain.number, 1, false, false);
-                            console.log(checkTrans)
                             let checkSegment = await grapheneAPI.fetchAccountHistorySegment(this.name, wallet.address, lastTransactionToObtain.number+200, transactionsToObtain);
-                            console.log(checkSegment)
-
                             break;
                         }
                         // Check if range is completed by this segment
                         rangeComplete = this.checkRangeComplete(firstRequestedNumber, firstTransactionInSegment, range.firstTransaction, expectedRangeComplete);
-                        console.log('rangeComplete:', rangeComplete)
                         if (rangeComplete === true) {
                             rangeEndsHit.first = true;
                         }
@@ -352,10 +334,8 @@ class Blockchain {
                         }
                         // Broad filter of segment by block number
                         let filteredTransactions = this.broadFilterTransactions(historySegment.result, range.firstTransaction.id, range.lastTransaction.id);
-                        console.log(filteredTransactions)
                         // Create object of processed transactions for account history segment
                         let processedTransactions = this.processHistoryDataSegment(filteredTransactions, wallet.address, wallet.summaryRange.addressNumber);
-                        console.log(processedTransactions)
                         // Complete filtering
                         let fineFilteredTransactions;
                         if (latestIdToFetchReached === false) {
@@ -364,7 +344,6 @@ class Blockchain {
                             fineFilteredTransactions = this.fineFilterTransactions(processedTransactions, latestIdToFetch, range.lastTransaction.id);
                             fineFilteredTransactions = this.fineFilterOutSingleId(fineFilteredTransactions, latestIdToFetch);
                         }
-                        console.log(fineFilteredTransactions)
 
                         // Process data if transactions to store
                         if (fineFilteredTransactions.length > 0) {
