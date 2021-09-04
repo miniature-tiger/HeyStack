@@ -225,7 +225,7 @@ class Transaction {
         // Delete rewarded and claimed and memo
         delete storeData.rewarded;
         delete storeData.claimed;
-        //delete storeData.memo;
+        delete storeData.memo;
         // Return
         return storeData;
     }
@@ -234,8 +234,7 @@ class Transaction {
         // Get dataToStore keys
         let storeHeaders = Object.keys(this.dataToStore);
         // Delete rewarded and claimed and memo
-        //storeHeaders = storeHeaders.filter(x => x !== 'rewarded' && x !== 'claimed' && x !== 'memo');
-        storeHeaders = storeHeaders.filter(x => x !== 'rewarded' && x !== 'claimed');
+        storeHeaders = storeHeaders.filter(x => x !== 'rewarded' && x !== 'claimed' && x !== 'memo');
         return storeHeaders;
     }
 
@@ -508,26 +507,6 @@ class Transaction {
     }
 
     // List of handled transactions (including virtual operations)
-    /*
-    static transactionsList = [
-        'author_reward',
-        'curation_reward',
-        'comment_benefactor_reward',
-        'producer_reward',
-        'claim_reward_balance',
-        'transfer',
-        'fill_convert_request',
-        'fill_vesting_withdraw',
-        'transfer_to_vesting',
-        'fill_order',
-        'account_create',
-        'account_create_with_delegation',
-        'claim_account',
-        'proposal_pay',
-        'create_proposal',
-        'interest'
-    ]
-    */
     static transactionsList = [
         // transaction operations
         'transfer', // transfer_operation, // 2
@@ -635,7 +614,6 @@ class HiveTransaction extends Transaction {
 
     // Conversion of Hive to HBD - initial convert
     collateralizedConvert(datum) {
-        console.log(datum)
         this.type = 'collateralized_convert';
         let [amount, currency] = datum[1].op[1].amount.split(' ');
         this.claimed[this.currencies.liquid] = Number((-1 * amount).toFixed(3));
