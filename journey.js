@@ -197,11 +197,13 @@ let journey = {
         {databaseName: 'proposal_pay', buttonText: 'proposal', category: 'rewards'},
         {databaseName: 'interest', buttonText: 'interest', category: 'rewards'},
 
-        {databaseName: 'fill_convert_request', buttonText: 'conversion', category: 'other'},
+        {databaseName: 'fill_convert_request', buttonText: 'conv to liquid', category: 'other'},
+        {databaseName: 'collateralized_convert', buttonText: 'conv to stable', category: 'other'},
         {databaseName: 'fill_vesting_withdraw', buttonText: 'power down', category: 'other'},
         {databaseName: 'transfer_to_vesting', buttonText: 'power up', category: 'other'},
         {databaseName: 'fill_order', buttonText: 'trade', category: 'other'},
         {databaseName: 'transfer', buttonText: 'transfer', category: 'other'},
+        {databaseName: 'fill_recurrent_transfer', buttonText: 'rec. transfer', category: 'other'},
     ],
 
     translateTransactionButtonToType: function(buttonText) {
@@ -352,7 +354,6 @@ let journey = {
         // Select coins
         let coinsToInclude = this.obtainCoinsTypeFromButtons(transactionsWallet);
         let transactionsStacks = await transactionsWallet.createBalanceStacksForCoins(coinsToInclude, false);
-
         if (transactionsStacks.stacks.length > 0) {
             // Add staked stacks from vests stack
             this.createStakedStackFromVests(transactionsStacks);

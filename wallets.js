@@ -352,6 +352,7 @@ let wallets = {
         wallets.page.boxes.c2.buttonRanges.walletControls.showButtons();
         // Deactivate any active blockchain button
         wallets.page.boxes.a2.buttonRanges.blockchains.deactivateAllButtons();
+        console.log(this.currentWallet)
     },
 
     changeCurrentWallet: function(blockchainName, address) {
@@ -601,7 +602,7 @@ class Wallet {
     get joinDate() {
         let dateResult = false;
         for (let transactionsCurrency in this.fullRanges) {
-            if (this.fullRanges[transactionsCurrency].firstTransaction.hasOwnProperty('date')) {
+            if (this.validFullRange(transactionsCurrency) === true) {
                 if (dateResult === false) {
                     dateResult = this.fullRanges[transactionsCurrency].firstTransaction.date;
                 } else {
@@ -610,22 +611,42 @@ class Wallet {
                         dateResult = potentialDate;
                     }
                 }
+            } else {
+                //console.log(this.fullRanges[transactionsCurrency]);
             }
         }
         return dateResult;
+    }
+
+    validFullRange(transactionsCurrency) {
+        let fullRange = this.fullRanges[transactionsCurrency];
+        // First transaction
+        if (fullRange !== undefined) {
+            if (fullRange.hasOwnProperty('firstTransaction')) {
+                if (fullRange.firstTransaction !== undefined) {
+                    if (fullRange.firstTransaction.hasOwnProperty('date')) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+
     }
 
     // Calculate last transaction date
     get lastTransactionDate() {
         let dateResult = false;
         for (let transactionsCurrency in this.fullRanges) {
-            if (this.fullRanges[transactionsCurrency].lastTransaction.hasOwnProperty('date')) {
-                if (dateResult === false) {
-                    dateResult = this.fullRanges[transactionsCurrency].lastTransaction.date;
-                } else {
-                    let potentialDate = this.fullRanges[transactionsCurrency].lastTransaction.date;
-                    if (potentialDate > dateResult) {
-                        dateResult = potentialDate;
+            if (this.fullRanges[transactionsCurrency].hasOwnProperty('firstTransaction')) {
+                if (this.fullRanges[transactionsCurrency].lastTransaction.hasOwnProperty('date')) {
+                    if (dateResult === false) {
+                        dateResult = this.fullRanges[transactionsCurrency].lastTransaction.date;
+                    } else {
+                        let potentialDate = this.fullRanges[transactionsCurrency].lastTransaction.date;
+                        if (potentialDate > dateResult) {
+                            dateResult = potentialDate;
+                        }
                     }
                 }
             }
@@ -635,7 +656,13 @@ class Wallet {
 
     calculateNativeTransactions() {
         let transactionsCurrency = this.blockchain.name;
-        return this.fullRanges[transactionsCurrency].lastTransaction.number - this.fullRanges[transactionsCurrency].firstTransaction.number + 1;
+        let range = this.fullRanges[transactionsCurrency];
+        if (range.hasOwnProperty('lastTransaction') && range.hasOwnProperty('firstTransaction')) {
+            if (range.lastTransaction !== undefined && range.firstTransaction !== undefined) {
+                return range.lastTransaction.number - range.firstTransaction.number + 1;
+            }
+        }
+        return 0;
     }
 
     calculatePriorTransactions() {
@@ -843,7 +870,12 @@ class Wallet {
             let count = 1;
             for (let range of ranges) {
                 if (range.hasOwnProperty('lastTransaction') && range.hasOwnProperty('firstTransaction')) {
-                    count += (range.lastTransaction.number - range.firstTransaction.number);
+                    if (range.lastTransaction !== undefined && range.firstTransaction !== undefined) {
+                        count += (range.lastTransaction.number - range.firstTransaction.number);
+                    } else {
+                        console.log(range)
+                        return 0;
+                    }
                 } else {
                     console.log(range)
                     return 0;

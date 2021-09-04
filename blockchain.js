@@ -74,12 +74,10 @@ class Blockchain {
     }
 
     // List of aggregated transactions
-    static transactionsToAggregate() {
-        return [
-            'curation_reward',
-            'producer_reward'
-        ]
-    }
+    static transactionsToAggregate = [
+        'curation_reward',
+        'producer_reward'
+    ];
 
     // Change buttons on selection of blockchain
     setup() {
@@ -178,6 +176,9 @@ class Blockchain {
                 storageNames = await this.getAccountHistoryFullHive(wallet, 0, latestIdToFetch);
                 // Process airdrops once all data loaded
                 await this.checkProcessAirdrops(wallet);
+
+                await this.processPendingTransactions(wallet);
+
                 // Update process status in wallet (and paired wallet) for stacks update
                 wallet.updateProcessStatus(storageNames, 'updated');
             } else {
@@ -187,6 +188,55 @@ class Blockchain {
                 wallet.updateProcessStatus(storageNames, 'updated');
             }
         }
+    }
+
+    // Process temporary transactions
+    async processPendingTransactions(wallet) {
+        await this.processPendingConversions(wallet);
+        //await this.processOpenOrders(wallet);
+    }
+
+    // Any ongoing Liquid -> Stable (HIVE -> HBD) transactions for the wallet are grouped and stored as into one temporary transaction
+    async processPendingConversions(wallet) {
+        let collateralizedConversions = await grapheneAPI.listCollateralizedConversionRequests(this.name, wallet.address);
+        collateralizedConversions = collateralizedConversions.result.requests.filter(x => x.owner === wallet.address);
+        if (collateralizedConversions.length > 0) {
+            let totals = {collateral: 0, converted: 0};
+            collateralizedConversions.forEach(x => {
+                totals.converted += Number(x.converted_amount.amount);
+            })
+            totals.converted = Number((totals.converted/1000).toFixed(3));
+            let groupedTransaction = this.createTemporaryCollateralizedConvertTransaction(totals.converted, wallet.summaryRange.addressNumber)
+            // Put method updates the manual collateralizedConvert entry for the address number
+            await this.storeManualTransactions([groupedTransaction], wallet.blockchain.name);
+        } else {
+            // Delete any existing temporary transaction once all ongoing conversions have completed
+            await this.deleteTemporaryCollateralizedConvertTransaction(wallet.blockchain.name, wallet.summaryRange.addressNumber);
+        }
+    }
+
+    // Create the temporary CollateralizedConvert transaction
+    createTemporaryCollateralizedConvertTransaction(hbdAmount, addressNumber) {
+        let datum = {
+            id: 'temporary_collateralized_convert_' + addressNumber,
+            addressNumber: addressNumber,
+            type: 'collateralized_convert',
+            date: new Date(),
+            claimed: {HBD: hbdAmount}
+        }
+        return new HiveTransaction(datum, false, false, false, 'manual');
+    }
+
+    // Delete the temporary CollateralizedConvert transaction
+    async deleteTemporaryCollateralizedConvertTransaction(blockchainName, addressNumber) {
+        let walletStore = blockchains.data[blockchainName].walletStore;
+        let key = 'temporary_collateralized_convert_' + addressNumber;
+        await databases.heyStack.deleteElement(walletStore, key);
+    }
+
+    // Open orders - not currently used
+    async processOpenOrders(wallet) {
+        let orders = await grapheneAPI.fetchOpenOrders(this.name, wallet.address);
     }
 
     // Detemine if load data should be restricted due to overlapping prior loaded data from another blockchain
@@ -238,7 +288,7 @@ class Blockchain {
                 let errorInFetch = false;
                 let validityOfLastTransactionInSegment = true;
                 while (rangeComplete === false && errorInFetch === false && latestIdToFetchReached === false) {
-                  // Transactions to obtaim is inclusive (i.e. includes both first and last, so should be +1)
+                  // Transactions to obtain is inclusive (i.e. includes both first and last, so should be +1)
                   // - however Steem API obtains one more transaction than transactionsToObtain, so +1 removed with transactionCountOffset (corrected in Hive in HF24)
                     let transactionsRemainingInRange = lastTransactionToObtain.number - range.firstTransaction.number + 1 + wallet.blockchain.parameters.transactionCountOffset;
                     if (transactionsRemainingInRange <= maxTransactions) {
@@ -269,6 +319,8 @@ class Blockchain {
                         // Break if last transaction check shows error
                         if (validityOfLastTransactionInSegment === false) {
                             communication.message("Issue with inconsistent account history numbers. Please try again later.");
+                            let checkTrans = await grapheneAPI.fetchAccountHistory(this.name, wallet.address, lastTransactionToObtain.number, 1, false, false);
+                            let checkSegment = await grapheneAPI.fetchAccountHistorySegment(this.name, wallet.address, lastTransactionToObtain.number+200, transactionsToObtain);
                             break;
                         }
                         // Check if range is completed by this segment
@@ -515,6 +567,7 @@ class Blockchain {
     // Extract first transaction from segment fetched
     extractFirstTransaction(historySegmentResult, address, addressNumber, minimumNumber, firstRequestedNumber) {
         if (historySegmentResult.length >= minimumNumber) {
+            console.log(historySegmentResult[0])
             return new Transaction(historySegmentResult[0], address, addressNumber, false, 'blockchain').dataForRange;;
         } else {
             // Default if no first transaction
@@ -525,6 +578,7 @@ class Blockchain {
     // Extract last transaction from segment fetched
     extractLastTransaction(historySegmentResult, address, addressNumber, lastTransactionToObtain) {
         if (historySegmentResult.length > 0) {
+            console.log(historySegmentResult[historySegmentResult.length-1])
             return new Transaction(historySegmentResult[historySegmentResult.length-1], address, addressNumber, false, 'blockchain').dataForRange;;
         } else {
             // Default if no last transaction
@@ -784,7 +838,7 @@ class Blockchain {
             case 'hive':
                 for (let datum of segment) {
                     let type = datum[1].op[0];
-                    if (HiveTransaction.transactionsList().includes(type)) {
+                    if (HiveTransaction.transactionsList.includes(type)) {
                         transactions.push(new HiveTransaction(datum, address, addressNumber, true, 'blockchain'));
                     }
                 }
@@ -792,7 +846,7 @@ class Blockchain {
             case 'steem':
                 for (let datum of segment) {
                     let type = datum[1].op[0];
-                    if (SteemTransaction.transactionsList().includes(type)) {
+                    if (SteemTransaction.transactionsList.includes(type)) {
                         transactions.push(new SteemTransaction(datum, address, addressNumber, true, 'blockchain'));
                     }
                 }
@@ -808,7 +862,7 @@ class Blockchain {
         let aggregated = [];
         let toAggregate = [];
         for (const transaction of processedTransactions) {
-            if (Blockchain.transactionsToAggregate().includes(transaction.type)) {
+            if (Blockchain.transactionsToAggregate.includes(transaction.type)) {
                 toAggregate.push(transaction); // For aggregation
             } else {
                 aggregated.push(transaction); // No aggregation - straight to processed
@@ -816,7 +870,7 @@ class Blockchain {
         }
 
         // Aggregate
-        for (const type of Blockchain.transactionsToAggregate()) {
+        for (const type of Blockchain.transactionsToAggregate) {
             let individualTransactions = toAggregate.filter(x => x.type === type);
             if (individualTransactions.length > 0) {
                 aggregated = aggregated.concat(this.aggregateTransactionsByDate(individualTransactions));

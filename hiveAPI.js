@@ -4,9 +4,7 @@
 // Functions to fetch from Hive / Seetm blockchain API
 let grapheneAPI = {
 
-    //urlHive: 'https://api.hive.blog',
-    //urlHive: 'https://api.openhive.network',
-    urlHive: 'https://hive.roelandp.nl',
+    urlHive: 'https://api.hive.blog',
     urlSteem: 'https://api.steemit.com',
 
     // Switch url based on blockchain
@@ -43,7 +41,7 @@ let grapheneAPI = {
     // Calculate low and high parameters to pre-filter transactions by type
     checkCalculateLowHighParams: function() {
         if (this.lowParam === false && this.highParam === false) {
-            let paramNumbers = [3, 4, 10, 23, 40, 42, 45, 49, 50, 51, 54, 55, 56, 62, 63, 65];
+            let paramNumbers = [3, 4, 10, 23, 40, 42, 45, 49, 51, 52, 53, 56, 57, 58, 64, 65, 67, 82, 84];
             this.lowParam = paramNumbers.filter(x => x <= 64).reduce((total, amount) => total + (2n ** BigInt(amount-1)), 0n).toString();
             this.highParam = paramNumbers.filter(x => x > 64).reduce((total, amount) => total + (2n ** BigInt(amount-64-1)), 0n).toString();
         }
@@ -79,7 +77,7 @@ let grapheneAPI = {
 
             if (responseJson.hasOwnProperty('error')) {
                 if (responseJson.error.message.substr(17, 28) === 'total_processed_items < 2000') {
-                    //console.log("error handling for 2000 empty issue")
+                    console.log("error handling for 2000 empty issue")
                     return {result: []};
                 } else {
                     console.log("error handling")
@@ -100,7 +98,6 @@ let grapheneAPI = {
 
     // Fetch open trade orders for account
     fetchOpenOrders: async function(blockchain, address) {
-        console.log('fetchOpenOrders')
         const data = {
             jsonrpc: '2.0',
             method: 'condenser_api.get_open_orders',
@@ -117,7 +114,6 @@ let grapheneAPI = {
 
     // Fetch open conversion requests for account
     fetchConversionRequests: async function(blockchain, address) {
-        console.log('fetchConversionRequests')
         const data = {
             jsonrpc: '2.0',
             method: 'database_api.list_hbd_conversion_requests',
@@ -129,6 +125,46 @@ let grapheneAPI = {
             id: 1
         };
         const dataString = JSON.stringify(data);
+
+        const response = await fetch(this.switchUrl(blockchain), {
+            method: 'POST',
+            body: dataString
+        });
+        return await response.json();
+    },
+
+    // Fetch open conversion requests for account
+    fetchCollateralizedConversionRequests: async function(blockchain, address) {
+        const data = {
+            jsonrpc: '2.0',
+            method: 'database_api.find_collateralized_conversion_requests',
+            params: {
+                address: address
+            },
+            id: 1
+        };
+        const dataString = JSON.stringify(data);
+
+        const response = await fetch(this.switchUrl(blockchain), {
+            method: 'POST',
+            body: dataString
+        });
+        return await response.json();
+    },
+
+    listCollateralizedConversionRequests: async function(blockchain, address) {
+        const data = {
+            jsonrpc: '2.0',
+            method: 'database_api.list_collateralized_conversion_requests',
+            params: {
+                start: [address],
+                limit: 200,
+                order: "by_account"
+            },
+            id: 1
+        };
+        const dataString = JSON.stringify(data);
+        console.log(dataString)
 
         const response = await fetch(this.switchUrl(blockchain), {
             method: 'POST',
@@ -327,6 +363,13 @@ let vestsData = {
     // Block number 47,797,680
     // 2020-10-14 19:31:24 (UTC)
     hive: [
+
+        {blockNumber: 57000025, dateNumber: 1630371036000, vestsPerLiquid: 1868.207},
+        {blockNumber: 56000002, dateNumber: 1627363830000, vestsPerLiquid: 1873.892},
+        {blockNumber: 55000011, dateNumber: 1624353054000, vestsPerLiquid: 1879.977},
+        {blockNumber: 54000011, dateNumber: 1621349250000, vestsPerLiquid: 1885.941},
+        {blockNumber: 53000003, dateNumber: 1618344891000, vestsPerLiquid: 1891.755},
+        {blockNumber: 51999892, dateNumber: 1615339944000, vestsPerLiquid: 1897.516},
         {blockNumber: 51995677, dateNumber: 1615327269000, vestsPerLiquid: 1897.502}, // actual
         {blockNumber: 51000086, dateNumber: 1612334049000, vestsPerLiquid: 1903.376},
         {blockNumber: 50000014, dateNumber: 1609327554000, vestsPerLiquid: 1909.537},
@@ -341,6 +384,10 @@ let vestsData = {
     ],
 
     steem: [
+        {blockNumber: 55999971, dateNumber: 1627862877000, vestsPerLiquid: 1864.949},
+        {blockNumber: 54000223, dateNumber: 1621795584000, vestsPerLiquid: 1878.216},
+        {blockNumber: 53000000, dateNumber: 1618768167000, vestsPerLiquid: 1884.973},
+        {blockNumber: 51999976, dateNumber: 1615732062000, vestsPerLiquid: 1891.989},
         {blockNumber: 51922772, dateNumber: 1615498047000, vestsPerLiquid: 1892.413}, // actual
         {blockNumber: 51000105, dateNumber: 1612681026000, vestsPerLiquid: 1898.986},
         {blockNumber: 49999812, dateNumber: 1609645293000, vestsPerLiquid: 1906.447},

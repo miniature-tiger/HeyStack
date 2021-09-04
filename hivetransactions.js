@@ -11,6 +11,9 @@ class Transaction {
         // Recreate transaction from stored data
         } else if (source === 'database') {
             this.constructFromDatabase(datum);
+        // Create manual transaction
+        } else if (source === 'manual') {
+            this.constructFromManual(datum);
         }
     }
 
@@ -69,6 +72,32 @@ class Transaction {
         this.addressNumber = datum.addressNumber;
         this.numberOfTransactions = datum.numberOfTransactions;
         this.historyId = datum.historyId;
+    }
+
+    // Create a single manual transaction - uses blank data
+    constructFromManual(datum) {
+        this.type = '';
+        this.date = '';
+        this.blockNumber = '';
+        this.virtualTransactionNumber = '';
+        this.transactionNumber = '';
+        this.subTransactionNumber = '';
+        this.addressNumber = '';
+        this.id = '';
+        this.rewarded = {};
+        this.claimed = {};
+        this.from = '';
+        this.to = '';
+        this.memo = '';
+        this.address = '';
+        this.numberOfTransactions = '';
+        this.historyId = '';
+
+        for (const key of Object.keys(datum)) {
+            if (this.hasOwnProperty(key)) {
+                this[key] = datum[key];
+            }
+        }
     }
 
     // Transaction Date
@@ -285,6 +314,16 @@ class Transaction {
                 break;
             case 'create_proposal':
                 this.createProposal(datum);
+                break;
+            case 'collateralized_convert':
+                this.collateralizedConvert(datum);
+                break;
+            case 'fill_collateralized_convert_request':
+                this.fillCollateralizedConvert(datum);
+                break;
+            case 'fill_recurrent_transfer':
+                this.recurrentTransfer(datum);
+                break;
             default:
                 // No action
         }
@@ -455,28 +494,44 @@ class Transaction {
         }
     }
 
-    // List of handled transactions (including virtual operations)
-    static transactionsList() {
-        return [
-            'author_reward',
-            'curation_reward',
-            'comment_benefactor_reward',
-            'producer_reward',
-            'claim_reward_balance',
-            'transfer',
-            'fill_convert_request',
-            'fill_vesting_withdraw',
-            'transfer_to_vesting',
-            'fill_order',
-            'account_create',
-            'account_create_with_delegation',
-            'claim_account',
-            'proposal_pay',
-            'create_proposal',
-            'interest'
-        ]
+    collateralizedConvert(datum) {
+        // Hive only - handled in HiveTransaction
     }
 
+    fillCollateralizedConvert(datum) {
+        // Hive only - handled in HiveTransaction
+    }
+
+    recurrentTransfer(datum) {
+        // Hive only - handled in HiveTransaction
+    }
+
+    // List of handled transactions (including virtual operations)
+    static transactionsList = [
+        // transaction operations
+        'transfer', // transfer_operation, // 2
+        'transfer_to_vesting', // transfer_to_vesting_operation, // 3
+        'account_create', // account_create_operation, // 9
+        'claim_account', // claim_account_operation, // 22
+        'claim_reward_balance', // claim_reward_balance_operation, // 39
+        'account_create_with_delegation', // account_create_with_delegation_operation, // 41
+        'create_proposal', // create_proposal_operation, // 44
+        'collateralized_convert', // 'collateralized_convert_operation', // 48
+        // virtual operations
+        'fill_convert_request', // fill_convert_request_operation, // last_regular + 1 => last_regular = 49 so 50
+        'author_reward', // author_reward_operation, // last_regular + 2
+        'curation_reward', /// curation_reward_operation, // last_regular + 3
+        'interest', // interest_operation, // last_regular + 6
+        'fill_vesting_withdraw', // fill_vesting_withdraw_operation, // last_regular + 7
+        'fill_order', // fill_order_operation, // last_regular + 8
+        'comment_benefactor_reward', // comment_benefactor_reward_operation, // last_regular + 14
+        'producer_reward', // producer_reward_operation, // last_regular + 15
+        'proposal_pay', // proposal_pay_operation, // last_regular + 17
+        'fill_collateralized_convert_request', // fill_collateralized_convert_request_operation, // last_regular + 32
+        'fill_recurrent_transfer', // fill_recurrent_transfer_operation, // last_regular + 34
+        // add 1 to each (since list starts with vote = 0 and bitwise count will start at 1)
+        // [3, 4, 10, 23, 40, 42, 45, 49, 51, 52, 53, 56, 57, 58, 64, 65, 67, 82, 84];
+    ]
 }
 
 // Create transaction from DATA OBTAINED FROM HIVE BLOCKCHAIN
@@ -555,6 +610,51 @@ class HiveTransaction extends Transaction {
                 this.claimed[this.currencies.stable] = -10 - (1 * extraNumberOfDays);
             }
         }
+    }
+
+    // Conversion of Hive to HBD - initial convert
+    collateralizedConvert(datum) {
+        this.type = 'collateralized_convert';
+        let [amount, currency] = datum[1].op[1].amount.split(' ');
+        this.claimed[this.currencies.liquid] = Number((-1 * amount).toFixed(3));
+        this.memo = datum[1].op[1].requestid;
+    }
+
+    // Conversion of Hive to HBD - completion after 3.5 days
+    fillCollateralizedConvert(datum) {
+        this.type = 'collateralized_convert';
+        let amountIn = datum[1].op[1].amount_in.split(' ')[0];
+        let amountOut = datum[1].op[1].amount_out.split(' ')[0];
+        let excess = datum[1].op[1].excess_collateral.split(' ')[0];
+        this.claimed[this.currencies.stable] = Number(Number(amountOut).toFixed(3));
+        this.claimed[this.currencies.liquid] = Number(Number(excess).toFixed(3));
+        this.memo = datum[1].op[1].requestid;
+    }
+
+    // Very similar to transfer - but API different!
+    recurrentTransfer(datum) {
+        // Direction (of transfer) handles +/- sign for transfer in/out respectively
+        let direction = 1;
+        if (datum[1].op[1].from === this.address) {
+            direction = -1;
+        }
+        // Determine balance changes based on currency of transfer and direction of transfer
+        let amount = datum[1].op[1].amount.amount;
+        let currency = datum[1].op[1].amount.nai;
+        switch (currency) {
+            case '@@000000021':
+                this.claimed[this.currencies.liquid] = Number(Number(amount * direction / 1000).toFixed(3));
+                break;
+            case '@@000000013':
+                this.claimed[this.currencies.stable] = Number(Number(amount * direction / 1000).toFixed(3));
+                break;
+            default:
+                console.log("transfer currency error");
+        }
+        // Other transaction elements
+        this.from = datum[1].op[1].from;
+        this.to = datum[1].op[1].to;
+        this.memo = datum[1].op[1].memo;
     }
 }
 
