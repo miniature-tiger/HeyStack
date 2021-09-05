@@ -56,25 +56,6 @@ let stacks = {
         userCoinPriceHistories: new HistoryCollection('1d', []),
     },
 
-    // List of exchanges from stackCollection
-    get exchanges() {
-        let exchangeList = Array.from(new Set(this.figures.stackCollection.stacks.map(x => x.source)));
-        console.log(exchangeList)
-        exchangeList.unshift('ALL');
-        return exchangeList;
-    },
-
-    get filteredStackCollection() {
-        let text = stacks.page.boxes.a2.buttonRanges.filters.buttons.exchanges.text.toUpperCase();
-        console.log(text)
-        if (text === 'ALL') {
-            return this.figures.stackCollection;
-        } else {
-            let filteredStacks = this.figures.stackCollection.stacks.filter(x => x.source.toUpperCase() === text);
-            return new StackCollection(filteredStacks);
-        }
-    },
-
     setup: function() {
         // Set up page - needs to be before buttons for button handlers defined on page
         this.page = new HeyPage(this.section, this.panels, this.boxes);
@@ -83,17 +64,9 @@ let stacks = {
         this.buttonRanges = [
             {box: 'a1', id: 'controls', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
-                    {id: 'refresh', type: 'simple', target: this, className: 'dataIcon', text: 'REFRESH', widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.refresh, onParameters: false, offParameters: false, subHandler: false, label: false},
-                    {id: 'exportTax', type: 'safety', target: tax, className: 'dataIcon', text: 'EXPORT TAX', widthPerc: 100, heightToWidth: 18, buttonHandler: tax.exportStatements, onParameters: false, offParameters: false, subHandler: false, label: false},
+                    {id: 'refresh', type: 'simple', target: this, className: 'dataIcon', text: 'REFRESH', widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.refresh, onParameters: false, offParameters: false, subHandler: false, label: false}
                 ]
-            },
-
-            {box: 'a2', id: 'filters', type: 'simple', parentRange: false, visible: true, buttonSpecs:
-                [
-                    {id: 'exchanges', type: 'scroll', target: stacks, className: 'scrollButton', text: ['ALL'], widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.filterByExchange, onParameters: false, offParameters: false, subHandler: false, label: 'EXCHANGES:'},
-
-                ]
-            },
+            }
         ];
         this.page.addButtonRanges(this.buttonRanges);
 
@@ -119,8 +92,6 @@ let stacks = {
                 communication.addLineToMessage('Data updated...')
             }
             await this.repriceAndRedraw();
-            console.log(this.figures.stackCollection)
-            await this.setUpFilters();
         } else {
             if (status.summary.state === 'setup') {
                 communication.addLineToMessage('No portfolio data.');
@@ -167,29 +138,8 @@ let stacks = {
         this.page.boxes.c2.addTable(headerSpec, columnSpec, 'coin', tableData, handlerSpec);
     },
 
-    createGainsTable: function() {
-        let headerSpec = {heightPerc: 8};
-
-        let columnSpec = [
-            {key: 'coin', label: 'SYMBOL', textFormat: 'string', widthPerc: '22%', columnFormat: 'tableDivLeft'},
-            {key: 'poolCost', label: 'COST', textFormat: 'currency'+settings.summary.currency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'realised', label: 'REALISED', textFormat: 'currency'+settings.summary.currency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'unrealised', label: 'UNREALISED', textFormat: 'currency'+settings.summary.currency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'valueFiat', label: 'VALUE', textFormat: 'currency'+settings.summary.currency, widthPerc: '19.5%', columnFormat: 'tableDivRight'}
-        ]
-
-        let tableData = [];
-        //let handlerSpec = {target: stacks, tableHandler: stacks.createCharts};
-        let handlerSpec = {};
-        this.page.boxes.c1.addTable(headerSpec, columnSpec, 'coin', tableData, handlerSpec);
-    },
-
     updatePortfolioTable: function(tableData) {
         this.page.boxes.c2.table.updateTableData(tableData);
-    },
-
-    updateGainsTable: function(tableData) {
-        this.page.boxes.c1.table.updateTableData(tableData);
     },
 
     aggregateTradesAndTransactions: async function() {
@@ -246,7 +196,6 @@ let stacks = {
         await this.updateCoinIdsFromCoinList(stackCollection);
         // Update coin price histories
         await this.updatePriceHistories(stackCollection);
-        console.log(this.figures.userCoinPriceHistories);
         // Update current prices, add these prices
         await this.updateCurrentPrices(settings.summary.currency);
     },
@@ -264,11 +213,9 @@ let stacks = {
     createHistories: function() {
         //let dayHistoryCollection = this.figures.stackCollection.createHistoryCollection('1d');
         let dayHistoryCollection = this.filteredStackCollection.createHistoryCollection('1d');
-        console.log(dayHistoryCollection);
         this.figures.dayHistoriesByCoin = dayHistoryCollection.aggregateByKey('coin', ['coinAmount', 'valueFiat'], false);
         // Total across all histories
         this.figures.totalDayHistory = dayHistoryCollection.totalAcrossHistories(dayHistoryCollection.histories, {}, ['valueFiat'], false);
-        console.log(this.figures.totalDayHistory)
     },
 
     // Fill portfolio table
@@ -368,7 +315,6 @@ let stacks = {
     updateCoinIdsFromCoinList: async function(stackCollection) {
         // Fetch coin list from API or storage
         let coinList = await this.fetchCoinList(false);
-        console.log(coinList)
         // Update coingecko ids in coinStacks if list obtained
         // - necessary even if list not updated incase of trades of new coins
         this.updateCoinGeckoIds(stackCollection, coinList);
@@ -431,19 +377,15 @@ let stacks = {
 
     updateCurrentPrices: async function(fiat) {
         // Map to userCoinIds
-        ////let userCoinIds = Object.values(this.figures.userCoins).map(x => x.coingeckoId);
         let stacksWithValue = this.figures.stackCollection.stacks.filter(x => x.dayHistory.lastMoment.coinAmount > 0);
         let userCoinIds = Array.from(new Set(stacksWithValue.map(x => x.coingeckoId)));
         // Get the user coin prices
         let coinPriceData = await coingecko.fetchMarketPrices(250, 1, userCoinIds, fiat);
         // Extract prices
         for (let coin in this.figures.userCoins) {
-            console.log(coin)
             let userCoin = this.figures.userCoins[coin];
-            console.log(userCoin)
             if (userCoin.coingeckoId !== false) {
                 const coinPriceDatum = coinPriceData.find(x => x.id === userCoin.coingeckoId);
-                console.log(coinPriceDatum)
                 if (coinPriceDatum !== undefined) {
                     userCoin.currentPrice = coinPriceDatum.current_price;
                     userCoin.currentPriceDate = coinPriceDatum.last_updated;
@@ -468,8 +410,6 @@ let stacks = {
                     if (dailyReport !== false) {
                         daysSinceLastPrice = this.numberOfPeriodsSinceDate('1d', dailyReport.latestDate);
                     }
-                    //console.log(stack.coingeckoId, daysSinceLastPrice)
-                    //console.log(stack)
                     if (daysSinceLastPrice >= 1) {
                         // Fetch daily prices
                         let dailyPrices = await coingecko.fetchHistoricPrices(stack.coingeckoId, settings.summary.currency, '1d', daysSinceLastPrice);
@@ -567,28 +507,4 @@ let stacks = {
               console.log(note)
           }
       },
-
-      // EXCHANGES WORK
-      // Button dates
-
-      setUpFilters: async function() {
-          this.setExchangeButtonValues();
-      },
-
-      setExchangeButtonValues: function() {
-          let exchangesButton = stacks.page.boxes.a2.buttonRanges.filters.buttons.exchanges;
-          console.log(this.exchanges)
-          exchangesButton.setValues(this.exchanges);
-      },
-
-      filterByExchange: async function() {
-          if (this.figures.stackCollection.stacks.length > 0) {
-              communication.message('Filtering. Please wait.');
-              // Update histories
-              await this.createHistories();
-              this.createChartsAndTable();
-              communication.addLineToMessage('Complete.');
-          }
-      }
-
 }
