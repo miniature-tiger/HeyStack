@@ -87,6 +87,11 @@ class TimePeriod {
         return newDate;
     }
 
+    endOfTimePeriodForDate(date) {
+        let startOfTimePeriod = this.startOfTimePeriodForDate(date);
+        return this.forwardOneTimePeriodForDate(startOfTimePeriod);
+    }
+
     createDateArray(startDate, endDate) {
         let currentDate = new DateHelper(startDate).date;
         let dateRange = [];
@@ -190,8 +195,13 @@ class DateHelper {
     }
 
     dateToText() {
-        return this.date.getDate() + "/" + Number(this.date.getMonth()+1) + "/" + this.date.getFullYear();
+        if (this.date !== false) {
+            return this.date.getDate() + "/" + Number(this.date.getMonth()+1) + "/" + this.date.getFullYear();
+        } else {
+            return false;
+        }
     }
+
 }
 
 // Helper for time (date number)
@@ -233,6 +243,27 @@ class NumberFormatHelper {
         return new Intl.NumberFormat('en-US', {maximumFractionDigits: decimalPlaces, minimumFractionDigits: decimalPlaces}).format(this.number);
     }
 
+    xdpNumber(decimalPlaces) {
+        return Number(this.number.toFixed(decimalPlaces));
+    }
+
+    sigFigDec(significant) {
+        if (this.number !== 0) {
+            let magnitude = Math.max(Math.floor(Math.log10(Math.abs(this.number)))+1, 0);
+        } else {
+            return 0;
+        }
+    }
+
+    xdpAfterMagNumber(decimalPlaces) {
+        if (this.number !== 0) {
+            let magnitude = Math.min(Math.floor(Math.log10(Math.abs(this.number))), 0);
+            return Number(this.number.toFixed(decimalPlaces - magnitude - 1));
+        } else {
+            return 0;
+        }
+    }
+
 }
 
 // Export helper
@@ -272,7 +303,9 @@ class ExportHelper {
     convertOperationsToCSVComplex() {
         // Convert dates to ISO date format timestamps and delete id
         for (let datum of this.data) {
-            datum.date = datum.date.toISOString();
+            if (datum.hasOwnProperty('date')) {
+                datum.date = datum.date.toISOString();
+            }
         }
         // Create header array and push to final output
         let headers = this.headers.map(x => x.toString());

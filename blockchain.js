@@ -567,7 +567,6 @@ class Blockchain {
     // Extract first transaction from segment fetched
     extractFirstTransaction(historySegmentResult, address, addressNumber, minimumNumber, firstRequestedNumber) {
         if (historySegmentResult.length >= minimumNumber) {
-            console.log(historySegmentResult[0])
             return new Transaction(historySegmentResult[0], address, addressNumber, false, 'blockchain').dataForRange;;
         } else {
             // Default if no first transaction
@@ -578,7 +577,6 @@ class Blockchain {
     // Extract last transaction from segment fetched
     extractLastTransaction(historySegmentResult, address, addressNumber, lastTransactionToObtain) {
         if (historySegmentResult.length > 0) {
-            console.log(historySegmentResult[historySegmentResult.length-1])
             return new Transaction(historySegmentResult[historySegmentResult.length-1], address, addressNumber, false, 'blockchain').dataForRange;;
         } else {
             // Default if no last transaction

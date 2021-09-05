@@ -150,9 +150,7 @@ class StackCollection {
         this.stacks = [];
         // new StackCollection without argument creates a blank collection
         if (stacks !== undefined) {
-            for (const stack of stacks) {
-                addStack(stack);
-            }
+            this.addStacks(stacks);
         }
     }
 

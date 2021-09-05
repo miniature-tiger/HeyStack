@@ -17,7 +17,7 @@ let stacks = {
 
     boxes: [
         {parent: 'a', id: 'a1', widthPerc: 100, heightPerc: 23, cssScheme: 'transparent justifyTop'},
-        {parent: 'a', id: 'a2', widthPerc: 100, heightPerc: 23, cssScheme: 'whiteBox'},
+        {parent: 'a', id: 'a2', widthPerc: 100, heightPerc: 23, cssScheme: 'transparent justifyTop'},
         {parent: 'a', id: 'a3', widthPerc: 100, heightPerc: 23, cssScheme: 'whiteBox'},
         {parent: 'a', id: 'a4', widthPerc: 100, heightPerc: 23, cssScheme: 'whiteBox'},
         {parent: 'b', id: 'b1', widthPerc: 100, heightPerc: 48, cssScheme: 'whiteBox'},
@@ -36,9 +36,16 @@ let stacks = {
 
         coinOverrides: {
             'VEN': {coingeckoId: false},
+            'ATD': {coingeckoId: false},
             'EXP': {coingeckoId: 'expanse'},
             'YOYO': {coingeckoId: 'yoyow'},
             'BTR': {coingeckoId: 'bitrue-token'},
+            'FTT': {coingeckoId: 'ftx-token'},
+            'GBP': {coingeckoId: 'upper-pound'},
+            'RUNE': {coingeckoId: 'thorchain'},
+            'ADA': {coingeckoId: 'cardano'},
+            'EOS': {coingeckoId: 'eos'},
+            'CUB': {coingeckoId: "cub-finance"},
         },
 
         stackCollection: new StackCollection(),
@@ -49,8 +56,6 @@ let stacks = {
         userCoinPriceHistories: new HistoryCollection('1d', []),
     },
 
-
-
     setup: function() {
         // Set up page - needs to be before buttons for button handlers defined on page
         this.page = new HeyPage(this.section, this.panels, this.boxes);
@@ -59,9 +64,9 @@ let stacks = {
         this.buttonRanges = [
             {box: 'a1', id: 'controls', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
-                    {id: 'refresh', type: 'simple', target: this, className: 'dataIcon', text: 'REFRESH', widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.refresh, onParameters: false, offParameters: false, subHandler: false, label: false},
+                    {id: 'refresh', type: 'simple', target: this, className: 'dataIcon', text: 'REFRESH', widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.refresh, onParameters: false, offParameters: false, subHandler: false, label: false}
                 ]
-            },
+            }
         ];
         this.page.addButtonRanges(this.buttonRanges);
 
@@ -163,6 +168,7 @@ let stacks = {
             this.createChartsAndTable();
             if (status.summary.state === 'setup') {
                 communication.addLineToMessage('Process complete.')
+                console.log(this.figures.stackCollection)
             }
         } else {
             this.resetAllDisplays();
@@ -205,7 +211,8 @@ let stacks = {
 
     // Create histories and totals
     createHistories: function() {
-        let dayHistoryCollection = this.figures.stackCollection.createHistoryCollection('1d');
+        //let dayHistoryCollection = this.figures.stackCollection.createHistoryCollection('1d');
+        let dayHistoryCollection = this.filteredStackCollection.createHistoryCollection('1d');
         this.figures.dayHistoriesByCoin = dayHistoryCollection.aggregateByKey('coin', ['coinAmount', 'valueFiat'], false);
         // Total across all histories
         this.figures.totalDayHistory = dayHistoryCollection.totalAcrossHistories(dayHistoryCollection.histories, {}, ['valueFiat'], false);
@@ -307,7 +314,7 @@ let stacks = {
     // Fetch coin list from API or storage
     updateCoinIdsFromCoinList: async function(stackCollection) {
         // Fetch coin list from API or storage
-        let coinList = await this.fetchCoinList();
+        let coinList = await this.fetchCoinList(false);
         // Update coingecko ids in coinStacks if list obtained
         // - necessary even if list not updated incase of trades of new coins
         this.updateCoinGeckoIds(stackCollection, coinList);
@@ -315,7 +322,7 @@ let stacks = {
 
     // Fetch coin list from coingecko
     // - once per day limit, user can override
-    fetchCoinList: async function() {
+    fetchCoinList: async function(force) {
         // Get date of last coin list update
         let lastCoinListUpdate = storage.getFromStorage('heystack_lastCoinListUpdate', 0);
         // Get coin list from storage to check if it exists (not stored in memory)
@@ -323,7 +330,7 @@ let stacks = {
 
         // Only update every day, otherwise load from local storage
         // - user can also force override
-        if (Date.now() - lastCoinListUpdate > (24*60*60*1000) || coinList.length === 0) {
+        if (Date.now() - lastCoinListUpdate > (24*60*60*1000) || coinList.length === 0 || force == true) {
             // Fetch and store coin list
             // - update time of last coin list update
             coinList = await coingecko.fetchCoinList();
@@ -370,7 +377,8 @@ let stacks = {
 
     updateCurrentPrices: async function(fiat) {
         // Map to userCoinIds
-        let userCoinIds = Object.values(this.figures.userCoins).map(x => x.coingeckoId);
+        let stacksWithValue = this.figures.stackCollection.stacks.filter(x => x.dayHistory.lastMoment.coinAmount > 0);
+        let userCoinIds = Array.from(new Set(stacksWithValue.map(x => x.coingeckoId)));
         // Get the user coin prices
         let coinPriceData = await coingecko.fetchMarketPrices(250, 1, userCoinIds, fiat);
         // Extract prices
@@ -402,7 +410,6 @@ let stacks = {
                     if (dailyReport !== false) {
                         daysSinceLastPrice = this.numberOfPeriodsSinceDate('1d', dailyReport.latestDate);
                     }
-
                     if (daysSinceLastPrice >= 1) {
                         // Fetch daily prices
                         let dailyPrices = await coingecko.fetchHistoricPrices(stack.coingeckoId, settings.summary.currency, '1d', daysSinceLastPrice);
@@ -415,7 +422,7 @@ let stacks = {
                             // Add ids
 
                             // Store daily prices
-                            let addedOperations = await databases.cryptoPrices.addData(dailyPriceHistory.moments, 'dailyPrices');
+                            let addedOperations = await databases.cryptoPrices.putData(dailyPriceHistory.moments, 'dailyPrices');
                             coinPriceHistory.addMoments(dailyPriceHistory.moments, ['base', 'quote', 'price']);
                         }
                     }
