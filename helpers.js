@@ -87,6 +87,11 @@ class TimePeriod {
         return newDate;
     }
 
+    endOfTimePeriodForDate(date) {
+        let startOfTimePeriod = this.startOfTimePeriodForDate(date);
+        return this.forwardOneTimePeriodForDate(startOfTimePeriod);
+    }
+
     createDateArray(startDate, endDate) {
         let currentDate = new DateHelper(startDate).date;
         let dateRange = [];
@@ -190,7 +195,59 @@ class DateHelper {
     }
 
     dateToText() {
-        return this.date.getDate() + "/" + Number(this.date.getMonth()+1) + "/" + this.date.getFullYear();
+        if (this.date !== false) {
+            return this.date.getDate() + "/" + Number(this.date.getMonth()+1) + "/" + this.date.getFullYear();
+        } else {
+            return false;
+        }
+    }
+
+    convertFromLocalTimeZone(timeZone) {
+        //console.log(this.date)
+        //console.log(new Date(this.date.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }))
+        //let localDate = new Date(new Date(this.date.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }));
+        let localDate = this.localStringDate(this.date, timeZone);
+        //console.log(localDate)
+        let backDate = this.addXSecondsToDate((this.date - localDate) / 1000);
+        //console.log(backDate)
+        let checkDate = this.localStringDate(backDate, timeZone);
+        //let checkDate = new Date(new Date(backDate.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }));
+        //console.log(new Date(backDate.getTime()))
+        //console.log(new Date(backDate.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }))
+        //console.log(checkDate)
+        let finalDate = new Date((Number(this.date) - Number(checkDate)) + Number(backDate));
+        //console.log(finalDate)
+        return finalDate
+    }
+
+    localStringDate(date, timeZone) {
+        let newDate = new Date(date.getTime());
+        let stringDate = newDate.toLocaleString('en-GB', {timeZone: timeZone, hour12: false });
+        let breakdown = stringDate.split(',');
+        let detail = breakdown[0].split('/').concat(breakdown[1].split(':'));
+        let constructedDate = new Date(detail[2], detail[1]-1, detail[0], detail[3], detail[4], detail[5]);
+        return constructedDate;
+    }
+
+}
+
+class DateStringHelper {
+    // Initialisation
+    constructor(dateString, format) {
+        switch(format) {
+            case 'UK':
+                this.date = this.convertFromUK(dateString);
+                break;
+            default:
+                //
+        }
+    }
+
+    convertFromUK(dateString) {
+        let breakdown = dateString.split(' ');
+        let dateArray = breakdown[0].split('/');
+        let timeArray = breakdown[1].split(':');
+        return new Date(dateArray[2], dateArray[1]-1, dateArray[0], timeArray[0], timeArray[1], timeArray[2]);
     }
 }
 
@@ -233,6 +290,27 @@ class NumberFormatHelper {
         return new Intl.NumberFormat('en-US', {maximumFractionDigits: decimalPlaces, minimumFractionDigits: decimalPlaces}).format(this.number);
     }
 
+    xdpNumber(decimalPlaces) {
+        return Number(this.number.toFixed(decimalPlaces));
+    }
+
+    sigFigDec(significant) {
+        if (this.number !== 0) {
+            let magnitude = Math.max(Math.floor(Math.log10(Math.abs(this.number)))+1, 0);
+        } else {
+            return 0;
+        }
+    }
+
+    xdpAfterMagNumber(decimalPlaces) {
+        if (this.number !== 0) {
+            let magnitude = Math.min(Math.floor(Math.log10(Math.abs(this.number))), 0);
+            return Number(this.number.toFixed(decimalPlaces - magnitude - 1));
+        } else {
+            return 0;
+        }
+    }
+
 }
 
 // Export helper
@@ -272,7 +350,9 @@ class ExportHelper {
     convertOperationsToCSVComplex() {
         // Convert dates to ISO date format timestamps and delete id
         for (let datum of this.data) {
-            datum.date = datum.date.toISOString();
+            if (datum.hasOwnProperty('date')) {
+                datum.date = datum.date.toISOString();
+            }
         }
         // Create header array and push to final output
         let headers = this.headers.map(x => x.toString());

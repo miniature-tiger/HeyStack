@@ -7,18 +7,21 @@ class Trade {
     constructor(datum) {
         this.id = datum.id;
         this.type = datum.type;
-        this.buy = datum.buy;
+        this.buy = Number(datum.buy);
         this.coinIn = datum.coinIn;
-        this.sell = datum.sell;
+        this.sell = Number(datum.sell);
         this.coinOut = datum.coinOut;
-        this.fee = datum.fee;
+        this.fee = Number(datum.fee);
         this.coinFee = datum.coinFee;
         this.exchange = datum.exchange;
         this.comment = datum.comment;
         this.date = datum.date;
         this.priceStatus = datum.priceStatus;
         if (datum.hasOwnProperty('fiatValue')) {
-            this.fiatValue = datum.fiatValue;
+            this.fiatValue = Number(datum.fiatValue);
+        }
+        if (datum.hasOwnProperty('feeValue')) {
+            this.feeValue = Number(datum.feeValue);
         }
     }
 
@@ -34,6 +37,10 @@ class Trade {
         return new DateValue(this.date, this.valueForCoin(coin));
     }
 
+    momentForCoin(coin) {
+        return new Moment({date: this.date, coinAmount: this.valueForCoin(coin)}, ['coinAmount']);
+    }
+
     valueForCoin(coin) {
         let pairs = [['coinIn', 'buy'], ['coinOut', 'sell'], ['coinFee', 'fee']];
         let value = 0;
@@ -43,6 +50,14 @@ class Trade {
             }
         }
         return value;
+    }
+
+    includesCoin(coin) {
+        if (this.coinIn === coin || this.coinOut === coin || this.coinFee === coin) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -94,6 +109,12 @@ class TradeGroup {
         return new Stack(this.coin, false, this.source, timePeriod, dateValues);
     }
 
+    createCoinHistory() {
+        let moments = this.trades.map(x => x.momentForCoin(this.coin));
+        let labels = {coin: this.coin, source: this.source};
+        return new CoinHistory('1d', moments, ['coinAmount'], false, false, true, labels);
+    }
+
     filterNewGroupByDate(date) {
         let filteredTrades = this.trades.filter(x => x.date < date);
         return new TradeGroup(this.coin, this.source, 'trades', filteredTrades);
@@ -116,6 +137,32 @@ class TradeGroup {
 
     filterGroupByExchange(exchange) {
         return this.trades.filter(x => x.exchange === exchange);
+    }
+
+    newGroupFilteredByTypes(types) {
+        let data = this.filterGroupByTypes(types);
+        if (data.length > 0) {
+            return new TradeGroup(this.coin, this.source, 'trades', data);
+        } else {
+            return false;
+        }
+    }
+
+    newGroupFromFilteredTrades(key, valuesArray) {
+        let data = this.filteredTrades(key, valuesArray);
+        if (data.length > 0) {
+            return new TradeGroup(this.coin, this.source, 'trades', data);
+        } else {
+            return false;
+        }
+    }
+
+    filteredTrades(key, valuesArray) {
+        return this.trades.filter(x => valuesArray.includes(x[key]));
+    }
+
+    filterGroupByTypes(types) {
+        return this.trades.filter(x => types.includes(x.type));
     }
 
     // List other coins that are included in TradeGroup (except main coin)
@@ -157,7 +204,7 @@ class TradeGroupCollection {
     }
 
     // Helper function to return object relating to coin from array of objects include a coin key
-    findGroupbyCoinAndSource(coin, source) {
+    findGroupByCoinAndSource(coin, source) {
         let result = this.tradeGroups.find(x => x.coin === coin && x.source === source);
         if (result === undefined) {
             return false;
@@ -251,7 +298,7 @@ let tradeModel = {
                     }
                     let airdropTrade = new Trade(airdropTradeInfo);
                     // Push Trade to producedCoin collection
-                    let producedGroup = tradeGroupCollection.findGroupbyCoinAndSource(airdrop.producedCoin, generatorGroup.source);
+                    let producedGroup = tradeGroupCollection.findGroupByCoinAndSource(airdrop.producedCoin, generatorGroup.source);
                     if (producedGroup !== false) {
                         producedGroup.addTrades([airdropTrade]);
                     } else {

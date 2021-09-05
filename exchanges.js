@@ -39,6 +39,7 @@ let coingecko = {
             return false;
         } else {
             if (timePeriodLabel === '1d') {
+                console.log(result)
                 return result.prices;
             } else {
                 return result.prices.slice(-(timePeriodsToFetch+1));
@@ -56,6 +57,7 @@ let coingecko = {
         } else {
             dataString = 'https://api.coingecko.com/api/v3/coins/' + coin + '/market_chart?vs_currency=' + formattedCurrency + '&days=' + daysToFetch;
         }
+        console.log(dataString)
         let response = await fetch(dataString);
         if (response.ok === true) {
             return await response.json();
@@ -82,6 +84,7 @@ let coingecko = {
         let formattedCurrency = currency.toLowerCase();
         // Generate request URL
         let dataString = 'https://api.coingecko.com/api/v3/coins/' + coin + '/market_chart/range?vs_currency=' + formattedCurrency + '&from=' + fromDate + '&to=' + toDate;
+        console.log(dataString)
         // Request data
         let response = await fetch(dataString);
         if (response.ok === true) {
