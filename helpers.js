@@ -202,53 +202,6 @@ class DateHelper {
         }
     }
 
-    convertFromLocalTimeZone(timeZone) {
-        //console.log(this.date)
-        //console.log(new Date(this.date.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }))
-        //let localDate = new Date(new Date(this.date.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }));
-        let localDate = this.localStringDate(this.date, timeZone);
-        //console.log(localDate)
-        let backDate = this.addXSecondsToDate((this.date - localDate) / 1000);
-        //console.log(backDate)
-        let checkDate = this.localStringDate(backDate, timeZone);
-        //let checkDate = new Date(new Date(backDate.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }));
-        //console.log(new Date(backDate.getTime()))
-        //console.log(new Date(backDate.getTime()).toLocaleString('en-GB', {timeZone: timeZone, hour12: false }))
-        //console.log(checkDate)
-        let finalDate = new Date((Number(this.date) - Number(checkDate)) + Number(backDate));
-        //console.log(finalDate)
-        return finalDate
-    }
-
-    localStringDate(date, timeZone) {
-        let newDate = new Date(date.getTime());
-        let stringDate = newDate.toLocaleString('en-GB', {timeZone: timeZone, hour12: false });
-        let breakdown = stringDate.split(',');
-        let detail = breakdown[0].split('/').concat(breakdown[1].split(':'));
-        let constructedDate = new Date(detail[2], detail[1]-1, detail[0], detail[3], detail[4], detail[5]);
-        return constructedDate;
-    }
-
-}
-
-class DateStringHelper {
-    // Initialisation
-    constructor(dateString, format) {
-        switch(format) {
-            case 'UK':
-                this.date = this.convertFromUK(dateString);
-                break;
-            default:
-                //
-        }
-    }
-
-    convertFromUK(dateString) {
-        let breakdown = dateString.split(' ');
-        let dateArray = breakdown[0].split('/');
-        let timeArray = breakdown[1].split(':');
-        return new Date(dateArray[2], dateArray[1]-1, dateArray[0], timeArray[0], timeArray[1], timeArray[2]);
-    }
 }
 
 // Helper for time (date number)
