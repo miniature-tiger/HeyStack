@@ -43,6 +43,26 @@ class Moment {
             return 0;
         }
     }
+
+    format(formats) {
+        for (const key in formats) {
+            if (this.hasOwnProperty(key)) {
+                switch(formats[key]) {
+                    case '2dp':
+                        this[key] = new NumberFormatHelper(this[key]).xdpNumber(2);
+                        break;
+                    case '4dpAfterMagNumber':
+                        this[key] = new NumberFormatHelper(this[key]).xdpAfterMagNumber(4);
+                        break;
+                    case 'currencyGBP':
+                        this[key] = new NumberFormatHelper(this[key]).currency('GBP');
+                        break;
+                    default:
+                        // Ignore
+                }
+            }
+        }
+    }
 }
 
 // Array of moments to produce a time series - sorted by date
@@ -68,7 +88,6 @@ class History {
         } else {
             this.addMoments(filteredData, this.keys);
         }
-
     }
 
     filterDataByDate(data) {
@@ -87,6 +106,12 @@ class History {
     // Simple addition of moments
     addMoments(filteredData, keys) {
         this.moments = this.moments.concat(filteredData.map(x => this.newMoment(x, keys)));
+        this.sortMomentsByDate();
+    }
+
+    // Addition of exisitng moments
+    addExistingMoments(existingMoments) {
+        this.moments = this.moments.concat(existingMoments);
         this.sortMomentsByDate();
     }
 
@@ -171,6 +196,17 @@ class History {
             }
         }
         return result;
+    }
+
+    // Return moment at end of time period for given date
+    endTimePeriodMomentForDate(date) {
+        let endOfTimePeriod = this.timePeriod.endOfTimePeriodForDate(date);
+        let endIndex = this.dateIndex(Number(endOfTimePeriod));
+        if (endIndex !== -1) {
+            return this.moments[endIndex];
+        } else {
+            return false;
+        }
     }
 
     // Add new date/key ranges to existing moments
@@ -322,6 +358,10 @@ class History {
         return newHistory;
     }
 
+    format(formats) {
+        this.moments.forEach(x => x.format(formats));
+    }
+
 }
 
 // Collection of histories
@@ -386,7 +426,7 @@ class HistoryCollection {
     }
 
     // Create set of items in collection for a key
-    setOfKeys(key) {
+    setOfValuesForKey(key) {
         return Array.from(new Set(this.histories.map(x => x[key])));
     }
 
@@ -395,7 +435,7 @@ class HistoryCollection {
         // Blank HistoryCollection for storage
         let aggregateCollection = this.newCollection(this.timePeriod.label, []);
         // Find set of aggregationKey items
-        let keyList = this.setOfKeys(aggregationKey);
+        let keyList = this.setOfValuesForKey(aggregationKey);
 
         for (const item of keyList) {
             // Filter histories that match item from keyList
@@ -482,8 +522,8 @@ class HistoryCollection {
         }
     }
 
-    async export(labelToUse, keysToInclude, exportOrLog) {
-        let groupedHistory = this.prepareForExport(labelToUse, keysToInclude);
+    async export(keysToInclude, exportOrLog) {
+        let groupedHistory = this.prepareForExport(keysToInclude);
         if (exportOrLog === true) {
             await this.exportPrepared(groupedHistory);
             console.log(groupedHistory);
@@ -492,16 +532,12 @@ class HistoryCollection {
         }
     }
 
-    prepareForExport(labelToUse, keysToInclude) {
-        let groupedHistory = new History('1d', [], [], false, false, true, {});
+    prepareForExport(keysToInclude, labelsToInclude) {
+        let groupedHistory = new History('1d', [], keysToInclude, false, false, false, {});
         for (let history of this.histories) {
-            let newKeys = [];
-            for (let keyToInclude of keysToInclude) {
-                history.changeKey(keyToInclude, history[labelToUse] + '_' + keyToInclude);
-                newKeys.push(history[labelToUse] + '_' + keyToInclude);
-            }
-            groupedHistory.addKeys(newKeys);
-            groupedHistory.aggregateMoments(history.moments, newKeys);
+            history.flattenLabels(['type', 'gainCalc']);
+            groupedHistory.moments = groupedHistory.moments.concat(history.moments.map(x => history.newMoment(x, keysToInclude)));// avoids sorting
+
         }
         return groupedHistory;
     }
@@ -512,6 +548,10 @@ class HistoryCollection {
         let filename = 'historiesExport';
         let exportHelper = new ExportHelper(data, exportHeaders, filename);
         await exportHelper.exportData();
+    }
+
+    format(formats) {
+        this.histories.forEach(x => x.format(formats));
     }
 }
 
@@ -586,6 +626,24 @@ class PriceMoment extends Moment {
             this.dateDifference = this.originalDate - this.date;
         }
     }
+
+    addBaseConversionPrice() {
+        let conversionValue = this.basePrice / this.quotePrice;
+        if (isNaN(conversionValue)) {
+            this.price = 0;
+        } else {
+            this.price = conversionValue;
+        }
+    }
+
+    addQuoteConversionPrice() {
+        let conversionValue = this.basePrice * this.quotePrice;
+        if (isNaN(conversionValue)) {
+            this.price = 0;
+        } else {
+            this.price = conversionValue;
+        }
+    }
 }
 
 // History with specific functions for prices
@@ -602,6 +660,11 @@ class PriceHistory extends History {
 
     newMoment(datum, keys) {
         return new PriceMoment(datum, keys);
+    }
+
+    // Create new history of matching class
+    newHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels) {
+        return new PriceHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels);
     }
 
     calibrateDates() {
@@ -627,12 +690,48 @@ class PriceHistory extends History {
         this.moments.forEach(x => x.removeKey('originalDate'));
         this.moments.forEach(x => x.removeKey('dateDifference'));
     }
+
+    baseConversion(adjustingPriceHistory) {
+        let labels = Object.assign({}, this.labels);
+        labels.base = adjustingPriceHistory.labels.quote;
+        let conversionHistory = this.newHistory(this.timePeriod, this.moments, this.keys, this.minDate, this.maxDate, this.aggregate, labels);
+        conversionHistory.changeKey('price', 'quotePrice');
+        conversionHistory.addNewDataRanges(adjustingPriceHistory.moments, ['price']);
+        conversionHistory.changeKey('price', 'basePrice');
+        conversionHistory.addBaseConversionPrices();
+        return conversionHistory;
+    }
+
+    quoteConversion(adjustingPriceHistory) {
+        let labels = Object.assign({}, this.labels);
+        labels.quote = adjustingPriceHistory.labels.base;
+        let conversionHistory = this.newHistory(this.timePeriod, this.moments, this.keys, this.minDate, this.maxDate, this.aggregate, labels);
+        conversionHistory.changeKey('price', 'basePrice');
+        conversionHistory.addNewDataRanges(adjustingPriceHistory.moments, ['price']);
+        conversionHistory.changeKey('price', 'quotePrice');
+        conversionHistory.addQuoteConversionPrices();
+        return conversionHistory;
+    }
+
+    addBaseConversionPrices() {
+        this.keys.push('price')
+        for (const moment of this.moments) {
+            moment.addBaseConversionPrice()
+        }
+    }
+
+    addQuoteConversionPrices() {
+        this.keys.push('price')
+        for (const moment of this.moments) {
+            moment.addQuoteConversionPrice()
+        }
+    }
 }
 
 // Moment with specific functions for stacks
 class StackMoment extends Moment {
     addValueFiat(fiat) {
-        let valueFiat = this.coinAmount * this.priceFiat;
+        let valueFiat = this.coinAmount * this.price;
         if (isNaN(valueFiat)) {
             //this.valueFiat = '';
             this.valueFiat = 0;
@@ -674,7 +773,7 @@ class StackHistory extends CumulativeHistory {
     }
 
     checkValuesFiatStatus() {
-        if (!this.keys.includes('priceFiat')) {
+        if (!this.keys.includes('price')) {
             return false;
         } else if (this.keys.includes('valueFiat')) {
             return 'update';
@@ -699,7 +798,7 @@ class StackHistory extends CumulativeHistory {
 // Moment with specific functions for coins
 class CoinMoment extends Moment {
     addValueFiat() {
-        let valueFiat = this.coinAmount * this.priceFiat;
+        let valueFiat = this.coinAmount * this.price;
         if (isNaN(valueFiat)) {
             this.valueFiat = 0;
         } else {
@@ -728,11 +827,33 @@ class CoinHistory extends History {
 
     // Creates new history of matching class
     newHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels) {
-        return new CoinHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels)
+        return new CoinHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels);
+    }
+
+    addPricesFiat(priceHistories, fiat) {
+        let priceHistory = priceHistories.findHistory({base: this.coin, quote: fiat});
+        if (priceHistory !== false) {
+            if (this.moments !== false) {
+                this.addNewDataRanges(priceHistory.moments, ['price']);
+            } else {
+                console.log("no fiat prices - false")
+            }
+        } else {
+           console.log("no price history")
+        }
+    }
+
+    addCurrentPricesFiat(userCoins) {
+        if (userCoins.hasOwnProperty(history.coin)) {
+            if (userCoins[history.coin].hasOwnProperty('currentPrice')) {
+                let datum = {date: this.timePeriod.mostRecentDateForTimePeriodPlusOne, price: userCoins[history.coin].currentPrice};
+                history.setValues([datum], ['price']);
+            }
+        }
     }
 
     addValuesFiat(fiat) {
-        if (this.keys.includes('priceFiat')) {
+        if (this.keys.includes('price')) {
             this.keys.push('valueFiat')
             for (const moment of this.moments) {
                 moment.addValueFiat(fiat)
@@ -763,16 +884,13 @@ class CoinHistory extends History {
 class CoinHistoryCollection extends HistoryCollection {
     addPricesFiat(priceHistories, fiat) {
         for (const history of this.histories) {
-            let priceHistory = priceHistories.findHistory({base: history.coin, quote: fiat});
-            if (priceHistory !== false) {
-                if (priceHistory.moments !== false) {
-                    history.addNewDataRanges(priceHistory.moments, ['priceFiat']);
-                } else {
-                    console.log("no Fiat prices - false")
-                }
-            } else {
-               console.log("no price history")
-            }
+            history.addPricesFiat(priceHistories, fiat);
+        }
+    }
+
+    addCurrentPricesFiat(userCoins) {
+        for (const history of this.histories) {
+            history.addCurrentPricesFiat(userCoins);
         }
     }
 
@@ -780,8 +898,8 @@ class CoinHistoryCollection extends HistoryCollection {
         for (const history of this.histories) {
             if (userCoins.hasOwnProperty(history.coin)) {
                 if (userCoins[history.coin].hasOwnProperty('currentPrice')) {
-                    let datum = {date: this.timePeriod.mostRecentDateForTimePeriodPlusOne, priceFiat: userCoins[history.coin].currentPrice};
-                    history.setValues([datum], ['priceFiat']);
+                    let datum = {date: this.timePeriod.mostRecentDateForTimePeriodPlusOne, price: userCoins[history.coin].currentPrice};
+                    history.setValues([datum], ['price']);
                 }
             }
         }
@@ -861,180 +979,8 @@ class DateValueRange {
 }
 
 
-// ------- DEVELOPMENT -------------
-
-class LabelledMoment extends Moment {
-    // Initialisation
-    constructor(datum, keys, labels) {
-        super(datum, keys);
-        // Add labels
-        for (const label in labels) {
-            this[label] = labels[label];
-        }
-    }
-
-    hasSameLabelsAs(labelsToCheck) {
-        let result = true;
-        for (const [key, value] of Object.entries(labelsToCheck)) {
-            if (this.hasOwnProperty(key)) {
-                if (this[key] !== value) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    checkSameDayTrade(otherMoment) {
-        if (Number(otherMoment.date) === Number(this.date)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-}
-
-class LabelledHistory extends History {
-    // Initialisation
-    //constructor(timePeriod, data, keys, minDate, maxDate, aggregate, historyLabels) {
-        // History constructor filters data, adds/aggregateAdds moments, and sorts by date
-    //    super(timePeriod, data, keys, minDate, maxDate, aggregate, historyLabels);
-    //}
-
-    //addMoments(filteredData, keys) {
-    //    this.moments = this.moments.concat(filteredData.map(x => this.newMoment(x, keys)));
-    //    this.sortMomentsByDate();
-    //}
-
-    aggregateMoments(filteredData, keys, report) {
-        for (const datum of filteredData) {
-            let newDate = this.timePeriod.startOfTimePeriodForDate(datum.date);
-            // Date does not previously exist
-
-            let filteredMoments = this.moments.filter(x => Number(x.date) === Number(newDate));
-            filteredMoments = filteredMoments.filter(x => x.hasSameLabelsAs(datum.labels));
-
-            if (filteredMoments.length === 0) {
-                //console.log('new date/labels - create');
-                this.moments.push(this.newMoment(datum, keys, datum.labels));
-            } else {
-                //console.log('existing date+labels - aggregate');
-                for (const key of keys) {
-                    if (filteredMoments[0].hasOwnProperty(key)) {
-                        filteredMoments[0][key] += datum[key];
-                    } else {
-                        filteredMoments[0][key] = datum[key];
-                    }
-                }
-            }
-            /*
-            if (index === -1) {
-                console.log('new date');
-                datum.date = newDate;
-                this.moments.push(this.newMoment(datum, keys, datum.labels));
-                // Date exists - add to value
-            } else if (!this.moments[index].hasSameLabelsAs(datum.labels)) {
-                console.log('same date, different labels');
-                datum.date = newDate;
-                this.moments.push(this.newMoment(datum, keys, datum.labels));
-            } else {
-                console.log('same date, same labels');
-                for (const key of keys) {
-                    if (this.moments[index].hasOwnProperty(key)) {
-                        this.moments[index][key] += datum[key];
-                    } else {
-                        this.moments[index][key] = datum[key];
-                    }
-                }
-            }
-            */
-        }
-        this.sortMomentsByDate();
-    }
 
 
 
-    newMoment(datum, keys, momentLabels) {
-        datum.date = this.timePeriod.startOfTimePeriodForDate(datum.date);
-        return new LabelledMoment(datum, keys, datum.labels);
-    }
-
-    // Creates new history of matching class
-    newHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels) {
-        return new LabelledHistory(timePeriod, data, keys, minDate, maxDate, aggregate, labels)
-    }
-}
 
 
-class GainHistory extends LabelledHistory {
-    // Initialisation
-    constructor(timePeriod, data, keys, minDate, maxDate, aggregate, labels) {
-        // History constructor filters data, adds/aggregateAdds moments, and sorts by date
-        super(timePeriod, data, keys, minDate, maxDate, aggregate, labels);
-
-        //this.processSameDayTrades();
-
-
-        this.calculatePool();
-    }
-
-    processSameDayTrades() {
-        for (let [i, moment] of this.moments.entries()) {
-            if (i < this.moments.length-1) {
-                let otherMoment = this.moments[i+1];
-                if (moment.checkSameDayTrade(otherMoment)) {
-                    // Find min abs coin amount
-                    let minCoinAmount = Math.min(Math.abs(this.coinAmount), Math.abs(otherMoment.coinAmount));
-                    // For trade with min amount:
-                        // change gainCalc to 'sameDay'
-                        // coinAmount, fiatValue unchanged
-
-                    // For trade with max amount:
-                        // change gainCalc to 'sameDay'
-                        // coinAmount = min
-                        // fiatValue = (min / Abs coinAmount) *  fiatValue
-
-                    // For trade with max amount:
-                        // Calculate new moment with gainCalc 'pool'
-                        // leave gainCalc as pool
-                        // coinAmount reduced by new moment coinAmount (in either direction)
-                        // fiatValue reduced by new moment fiatValue (in either direction)?
-
-                    // For sell sameDay calc realised gain as fiatValue sell - fiatValue buy
-
-                }
-            }
-        }
-    }
-
-    calculatePool() {
-        for (let [i, moment] of this.moments.entries()) {
-            // Initialise moment from prior moment
-            if (i===0) {
-                moment['poolAmount'] = 0;
-                moment['poolFiatValue'] = 0;
-                moment['cumulativeRealisedGainValue'] = 0;
-            } else {
-                moment['poolAmount'] = this.moments[i-1].poolAmount;
-                moment['poolFiatValue'] = this.moments[i-1].poolFiatValue;
-                moment['cumulativeRealisedGainValue'] = this.moments[i-1].cumulativeRealisedGainValue;
-            }
-            if (moment.coinAmount >= 0) {
-                moment.poolAmount += moment.coinAmount;
-                moment.poolFiatValue += moment.fiatValue;
-                moment['realisedGainValue'] = 0;
-            } else {
-                let purchaseCostOfSold = -Number((moment.poolFiatValue * (moment.coinAmount / moment.poolAmount)).toFixed(2));
-                moment.poolAmount += moment.coinAmount;
-                moment.poolFiatValue -= purchaseCostOfSold;
-                moment['realisedGainValue'] = Number((moment.fiatValue - purchaseCostOfSold).toFixed(2));
-                moment.cumulativeRealisedGainValue += moment.realisedGainValue;
-            }
-
-        }
-    }
-
-}
