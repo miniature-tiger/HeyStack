@@ -51,23 +51,6 @@ let stacks = {
         conversionHistory: false,
     },
 
-    // List of exchanges from stackCollection
-    get exchanges() {
-        let exchangeList = Array.from(new Set(this.figures.stackCollection.stacks.map(x => x.source)));
-        exchangeList.unshift('ALL');
-        return exchangeList;
-    },
-
-    get filteredStackCollection() {
-        let text = stacks.page.boxes.a2.buttonRanges.filters.buttons.exchanges.text.toUpperCase();
-        if (text === 'ALL') {
-            return this.figures.stackCollection;
-        } else {
-            let filteredStacks = this.figures.stackCollection.stacks.filter(x => x.source.toUpperCase() === text);
-            return new StackCollection(filteredStacks);
-        }
-    },
-
     setup: function() {
         // Set up page - needs to be before buttons for button handlers defined on page
         this.page = new HeyPage(this.section, this.panels, this.boxes);
@@ -77,14 +60,7 @@ let stacks = {
             {box: 'a1', id: 'controls', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
                     {id: 'refresh', type: 'simple', target: this, className: 'dataIcon', text: 'REFRESH', widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.refresh, onParameters: false, offParameters: false, subHandler: false, label: false},
-                    {id: 'exportTax', type: 'safety', target: tax, className: 'dataIcon', text: 'EXPORT TAX', widthPerc: 100, heightToWidth: 18, buttonHandler: tax.exportStatements, onParameters: false, offParameters: false, subHandler: false, label: false},
-                ]
-            },
-
-            {box: 'a2', id: 'filters', type: 'simple', parentRange: false, visible: true, buttonSpecs:
-                [
-                    {id: 'exchanges', type: 'scroll', target: stacks, className: 'scrollButton', text: 'ALL', values: ['ALL'], widthPerc: 100, heightToWidth: 18, buttonHandler: stacks.filterByExchange, onParameters: false, offParameters: false, subHandler: false, label: 'EXCHANGES:'},
-
+                    
                 ]
             },
         ];
@@ -153,35 +129,14 @@ let stacks = {
             {key: 'price', label: 'PRICE', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '26%', columnFormat: 'tableDivRight'},
             {key: 'valueFiat', label: 'VALUE', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '26%', columnFormat: 'tableDivRight'}
         ]
-
+        
         let tableData = [];
         let handlerSpec = {target: stacks, tableHandler: stacks.createCharts};
         this.page.boxes.c2.addTable(headerSpec, columnSpec, 'coin', tableData, handlerSpec);
     },
 
-    createGainsTable: function() {
-        let headerSpec = {heightPerc: 8};
-
-        let columnSpec = [
-            {key: 'coin', label: 'SYMBOL', textFormat: 'string', widthPerc: '22%', columnFormat: 'tableDivLeft'},
-            {key: 'poolCost', label: 'COST', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'realised', label: 'REALISED', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'unrealised', label: 'UNREALISED', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '19.5%', columnFormat: 'tableDivRight'},
-            {key: 'valueFiat', label: 'VALUE', textFormat: 'currency'+settings.summary.displayCurrency, widthPerc: '19.5%', columnFormat: 'tableDivRight'}
-        ]
-
-        let tableData = [];
-        //let handlerSpec = {target: stacks, tableHandler: stacks.createCharts};
-        let handlerSpec = {};
-        this.page.boxes.c1.addTable(headerSpec, columnSpec, 'coin', tableData, handlerSpec);
-    },
-
     updatePortfolioTable: function(tableData) {
         this.page.boxes.c2.table.updateTableData(tableData);
-    },
-
-    updateGainsTable: function(tableData) {
-        this.page.boxes.c1.table.updateTableData(tableData);
     },
 
     aggregateTradesAndTransactions: async function() {
@@ -465,32 +420,6 @@ let stacks = {
         }
     },
 
-    // Update coingecko ids in stackCollection stacks
-    updateCoinGeckoIdsOld: function(stackCollection, coinList) {
-        for (let stack of stackCollection.stacks) {
-            if (!stack.hasOwnProperty('coingeckoId')) {
-                // Overrides for awkward coins
-                if (this.figures.coinOverrides.hasOwnProperty(stack.coin)) {
-                    stack.setCoinGeckoId(this.figures.coinOverrides[stack.coin].coingeckoId);
-                    this.setUserCoinInfo(stack.coin, this.figures.coinOverrides[stack.coin].coingeckoId);
-                // Set setCoinGeckoIds in stacks
-                } else {
-                    let index = coinList.findIndex(x => x.symbol === stack.coin.toLowerCase());
-                    if (index === -1) {
-                        index = coinList.findIndex(x => x.symbol === stack.coin);
-                    }
-                    if (index !== -1) {
-                        stack.setCoinGeckoId(coinList[index].id);
-                        this.setUserCoinInfo(stack.coin, coinList[index].id);
-                    } else {
-                        stack.setCoinGeckoId(false);
-                        this.setUserCoinInfo(stack.coin, false);
-                    }
-                }
-            }
-        }
-    },
-
     // Set coin info if has not already been set for coin
     setUserCoinInfo: function(coin, coingeckoId) {
         if (!this.figures.userCoins.hasOwnProperty(coin)) {
@@ -661,5 +590,4 @@ let stacks = {
               console.log(note)
           }
       },
-
 }
