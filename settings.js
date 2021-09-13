@@ -8,7 +8,8 @@ let settings = {
     summary: {},
 
     summaryDefault: {
-        currency: 'USD',
+        mainCurrency: 'USD',
+        displayCurrency: 'USD',
     },
 
     // Page setup
@@ -38,6 +39,7 @@ let settings = {
     setup: function() {
         // Get stored settings from storage
         this.summary = storage.getFromStorage('heystack_settings', this.summaryDefault);
+        this.cleanSummary();
 
         // Set up page - needs to be before buttons for button handlers defined on page
         this.page = new HeyPage(this.section, this.panels, this.boxes);
@@ -46,7 +48,8 @@ let settings = {
         this.buttonRanges = [
             {box: 'b2', id: 'settings', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
-                    {id: 'currency', type: 'scroll', target: journey, className: 'scrollButton', text: ['usd', 'gbp', 'eur', 'jpy'], widthPerc: 100, heightToWidth: 18, buttonHandler: settings.changeInFiatCurrency, onParameters: false, offParameters: false, subHandler: false, label: 'FIAT CURRENCY:'},
+                    {id: 'mainCurrency', type: 'scroll', target: this, className: 'scrollButton', text: 'usd', values: ['usd', 'gbp', 'eur', 'jpy'], widthPerc: 100, heightToWidth: 18, buttonHandler: settings.changeInFiatCurrency, onParameters: false, offParameters: false, subHandler: false, label: 'MAIN CURRENCY:'},
+                    {id: 'displayCurrency', type: 'scroll', target: this, className: 'scrollButton', text: 'usd', values: ['usd', 'gbp', 'eur', 'jpy'], widthPerc: 100, heightToWidth: 18, buttonHandler: settings.changeInFiatCurrency, onParameters: false, offParameters: false, subHandler: false, label: 'DISPLAY CURRENCY:'},
                 ]
             },
 
@@ -56,6 +59,8 @@ let settings = {
                 ]
             },
         ]
+
+        this.setScrollButtonText();
         this.page.addButtonRanges(this.buttonRanges);
     },
 
@@ -67,29 +72,106 @@ let settings = {
         communication.messageOff();
     },
 
+    cleanSummary: function() {
+        for (let key in this.summary) {
+            if (!this.summaryDefault.hasOwnProperty(key)) {
+                delete this.summary[key];
+            }
+        }
+    },
+
+    setScrollButtonText: function() {
+        this.findButton('settings', 'mainCurrency').text = this.summary.mainCurrency.toLowerCase();
+        this.findButton('settings', 'displayCurrency').text = this.summary.displayCurrency.toLowerCase();
+    },
+
+    findButtonRange: function(id) {
+        return this.buttonRanges.find(x => x.id === id);
+    },
+
+    findButton: function(rangeId, buttonId) {
+        let buttonRange = this.findButtonRange(rangeId);
+        return buttonRange.buttonSpecs.find(x => x.id === buttonId);
+    },
+
     changeInFiatCurrency: async function(fiatCurrency) {
         // Add colour change?
     },
 
     // Saves settings and recalculates all prices
     saveSettings: async function() {
-        let text = 'Settings saved. Please wait for reprice.';
-        let fiatCurrency = this.obtainFiatCurrencyFromButton();
-        if (this.summary.currency !== fiatCurrency) {
-            this.summary.currency = fiatCurrency;
-            text = 'New fiat currency: ' + fiatCurrency + '. ' + text;
+        let changedBaseCurrency = false;
+        let changedDisplayCurrency = false;
+        let text = '';
+        let fiatCurrencies = this.obtainFiatCurrenciesFromButtons();
+        if (this.summary.mainCurrency !== fiatCurrencies.mainCurrency) {
+            this.summary.mainCurrency = fiatCurrencies.mainCurrency;
+            text = 'New main currency: ' + this.summary.mainCurrency + '.<br>';
+            changedBaseCurrency = true;
         }
+        if (this.summary.displayCurrency !== fiatCurrencies.displayCurrency) {
+            this.summary.displayCurrency = fiatCurrencies.displayCurrency;
+            text = text + 'New display currency: ' + this.summary.displayCurrency + '.<br>';
+            changedDisplayCurrency = true;
+        }
+        // Communicate message
+        text = text + 'Settings saved. Please wait for reprice.';
         communication.message(text);
-        // Save it in storage
+        // Save currenices in storage
         storage.setInStorage('heystack_settings', this.summary);
         // Apply refresh
-        await stacks.repriceAndRedraw();
+        if (changedBaseCurrency == true) {
+            await stacks.resetForMainCurrencyChange();
+            clearPricesStore();
+            await stacks.repriceAndRedraw();
+            console.log('changedBaseCurrency')
+        }
+
+        if (changedDisplayCurrency == true) {
+            await stacks.resetForDisplayCurrencyChange();
+            await stacks.repriceAndRedraw();
+            console.log('changedDisplayCurrency')
+        }
+
+        //await stacks.repriceAndRedraw();
     },
 
     // Read fiat currency from button text
-    obtainFiatCurrencyFromButton: function() {
-        return settings.page.boxes.b2.buttonRanges.settings.buttons.currency.text.toUpperCase();
+    obtainFiatCurrenciesFromButtons: function() {
+        return {
+            mainCurrency: settings.page.boxes.b2.buttonRanges.settings.buttons.mainCurrency.text.toUpperCase(),
+            displayCurrency: settings.page.boxes.b2.buttonRanges.settings.buttons.displayCurrency.text.toUpperCase()
+        }
     },
+
+    // Run opening tasks (fast only, no fetch, no aggregation)
+    runOpeningTasks: async function() {
+        // Create blockchains object
+        this.checkCreateManualPrices();
+    },
+
+    // Create manual prices and add to prices database
+    checkCreateManualPrices: async function() {
+        let data = [];
+        let rawData = [
+            {base: 'HIVE', quote: 'GBP', data:
+                [ {date: 1584662400000, price: 0.1488},
+                  {date: 1584748800000, price: 0.1488},
+                  {date: 1584835200000, price: 0.1488}
+                ]
+            },
+        ];
+        for (let dataGroup of rawData) {
+            for (let datum of dataGroup.data) {
+                let date = new Date(datum.date);
+                let dataPoint = {date: date, base: dataGroup.base, quote: dataGroup.quote, price: Number(datum.price), id: dataGroup.base + dataGroup.quote + Number(date/1000)};
+                data.push(dataPoint)
+            }
+            let history = new PriceHistory('1d', data, ['id', 'base', 'quote', 'price'], false, false, false, {base: dataGroup.base, quote: dataGroup.quote});
+            let addedOperations = await databases.cryptoPrices.putData(history.moments, 'dailyPrices');
+        }
+    },
+
 }
 
 // Site status

@@ -10,10 +10,26 @@ let coingecko = {
         return await response.json();
     },
 
+    // Market prices for updating current coin prices
+    fetchMarketPrices: async function(coinIds, currency) {
+        let formattedCurrency = currency.toLowerCase();
+
+        let batches = [];
+        while (coinIds.length > 0) {
+            batches.push(coinIds.splice(0, 50));
+        }
+
+        let results = [];
+        for (let batch of batches) {
+            let batchResult = await this.fetchMarketPricesSinglePage(batch, formattedCurrency);
+            results = results.concat(batchResult);
+        }
+        return results;
+
+    },
 
     // Market prices for updating current coin prices
-    fetchMarketPrices: async function(numberToFetch, page, coinIds, currency) {
-        let formattedCurrency = currency.toLowerCase();
+    fetchMarketPricesSinglePage: async function(coinIds, formattedCurrency) {
 
         let ids = '';
         if (coinIds.length > 0) {
@@ -25,7 +41,7 @@ let coingecko = {
                 }
             }
         }
-        let dataString = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=' + formattedCurrency + '&ids=' + ids + '&order=market_cap_desc&per_page=' + numberToFetch + '&page=' + page + '&sparkline=false';
+        let dataString = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=' + formattedCurrency + '&ids=' + ids + '&order=market_cap_desc&per_page=50&page=1&sparkline=false';
         let response = await fetch(dataString);
         return await response.json();
     },
