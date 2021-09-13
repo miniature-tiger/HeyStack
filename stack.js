@@ -200,6 +200,10 @@ class StackCollection {
         return Object.keys(this.stacks).length;
     }
 
+    get coins() {
+        return new Set(this.stacks.map(x => x.coin));
+    }
+
     // Adds fiat prices to histories
     addPricesFiat(historyTimePeriod, priceHistories, fiat) {
         for (const stack of this.stacks) {
@@ -207,7 +211,7 @@ class StackCollection {
             if (priceHistory !== false) {
                 if (priceHistory.moments !== false) {
                     let historyName = Stack.historyNames(historyTimePeriod);
-                    stack[historyName].addNewDataRanges(priceHistory.moments, ['priceFiat']);
+                    stack[historyName].addNewDataRanges(priceHistory.moments, ['price']);
                 } else {
                     //console.log(stack.coin + " - no Fiat prices - false")
                 }
@@ -222,9 +226,9 @@ class StackCollection {
         for (const stack of this.stacks) {
             if (userCoins.hasOwnProperty(stack.coin)) {
                 if (userCoins[stack.coin].hasOwnProperty('currentPrice')) {
-                    let datum = {date: new TimePeriod(historyTimePeriod).mostRecentDateForTimePeriodPlusOne, priceFiat: userCoins[stack.coin].currentPrice};
+                    let datum = {date: new TimePeriod(historyTimePeriod).mostRecentDateForTimePeriodPlusOne, price: userCoins[stack.coin].currentPrice};
                     let historyName = Stack.historyNames(historyTimePeriod);
-                    stack[historyName].setValues([datum], ['priceFiat']);
+                    stack[historyName].setValues([datum], ['price']);
                 }
             }
         }
