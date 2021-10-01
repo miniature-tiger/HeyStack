@@ -52,7 +52,7 @@ let journey = {
             {box: 'c1', id: 'transactions', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
                     {id: 'transactionCategory', type: 'scroll', target: journey, className: 'scrollButton', text: false, widthPerc: 100, heightToWidth: 18, buttonHandler: journey.setTransactionValuesFromCatgeory, onParameters: false, offParameters: false, subHandler: false, label: 'TRANSACTIONS:'},
-                    {id: 'transactionType', type: 'scroll', target: journey, className: 'scrollButton', text: '', widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: false},
+                    {id: 'transactionType', type: 'scroll', target: journey, className: 'scrollButton', text: false, widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: false},
                     {id: 'coins', type: 'scroll', target: journey, className: 'scrollButton', text: false, widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: 'COINS TO INCLUDE:'},
                     {id: 'valueCurrency', type: 'scroll', target: journey, className: 'scrollButton', text: false, widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: 'DISPLAY VALUES IN:'},
                 ]
@@ -61,7 +61,7 @@ let journey = {
             {box: 'c2', id: 'chartStyle', type: 'menu', parentRange: false, visible: true, buttonSpecs:
                 [
                     //{id: 'chartType', type: 'scroll', target: journey, className: 'scrollButton', text: ['stacked bar', 'line chart'], widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: 'CHART TYPE:'},
-                    {id: 'chartLevel', type: 'scroll', target: journey, className: 'scrollButton', text: ['upper chart', 'lower chart'], widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: 'CHART LEVEL:'},
+                    {id: 'chartLevel', type: 'scroll', target: journey, className: 'scrollButton', text: 'upper chart', values: ['upper chart', 'lower chart'], widthPerc: 100, heightToWidth: 18, buttonHandler: false, onParameters: false, offParameters: false, subHandler: false, label: 'CHART LEVEL:'},
                 ]
             },
 
@@ -128,7 +128,7 @@ let journey = {
             journey.page.boxes.c1.buttonRanges.transactions.buttons.transactionCategory.setValues(['balances', 'rewards', 'other']);
             let blockchainCoinOptions = ['all'].concat(buttonWallet.blockchain.coins.map(x => x.label));
             journey.page.boxes.c1.buttonRanges.transactions.buttons.coins.setValues(blockchainCoinOptions);
-            journey.page.boxes.c1.buttonRanges.transactions.buttons.valueCurrency.setValues([settings.summary.currency, 'COIN AMOUNT']);
+            journey.page.boxes.c1.buttonRanges.transactions.buttons.valueCurrency.setValues([settings.summary.displayCurrency, 'COIN AMOUNT']);
             // Charts
             //journey.page.boxes.c2.buttonRanges.chartStyle.buttons.chartType.setValues(['stacked bar', 'line chart']);
             journey.page.boxes.c2.buttonRanges.chartStyle.buttons.chartLevel.setValues(['upper chart', 'lower chart']);
