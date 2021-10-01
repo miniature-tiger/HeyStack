@@ -198,7 +198,6 @@ let stacks = {
         } else {
             this.figures.conversionHistory = false;
         }
-        lastTime = nowTime
         // Update coin price histories
         await this.updatePriceHistories(stackCollection.coins, settings.summary.mainCurrency, settings.summary.displayCurrency);
         // Update current prices, add these prices
