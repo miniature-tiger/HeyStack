@@ -9,6 +9,9 @@ class Button {
         this.id = spec.id;
         this.type = spec.type;
         this.text = spec.text;
+        if (spec.hasOwnProperty('values')) {
+            this.values = spec.values;
+        }
         // Colours
         this.className = spec.className;
         this.setColours();
@@ -217,10 +220,9 @@ class ScrollButton extends Button {
         if (this.text === false) {
             // Remove text node
             this.text = '';
+            this.values = [];
         // Button values set internally from spec (e.g. list of set values)
         } else {
-            this.values = this.text;
-            this.text = '';
             this.setValues(this.values);
         }
     }

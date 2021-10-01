@@ -78,6 +78,12 @@ let settings = {
                 delete this.summary[key];
             }
         }
+
+        for (let key in this.summaryDefault) {
+            if (!this.summary.hasOwnProperty(key)) {
+                this.summary[key] = this.summaryDefault[key];
+            }
+        }
     },
 
     setScrollButtonText: function() {
